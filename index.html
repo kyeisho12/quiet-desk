@@ -464,8 +464,8 @@
   .friend-card-actions button{ all:unset; cursor:pointer; font-size:12px; color:var(--text-dim); }
   .friend-card-actions button:hover{ color:var(--danger); }
 
-  /* Mic check */
-  .mic-card{
+  /* Focus Room */
+  .mic-card, .noise-card{
     background:var(--surface); border:1px solid var(--border);
     border-radius:var(--radius); padding:24px; max-width:480px;
   }
@@ -483,6 +483,12 @@
   .mic-record-row{ display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
   .mic-status{ font-size:13px; color:var(--text-dim); }
   #mic-playback{ display:block; }
+  .noise-card{ margin-top:18px; }
+  .noise-card p{ margin:0 0 16px; color:var(--text-dim); font-size:13px; }
+  .noise-controls{ display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
+  .noise-volume{ display:flex; align-items:center; gap:9px; color:var(--text-dim); font-size:12px; }
+  .noise-volume input{ width:150px; accent-color:var(--accent); }
+  .noise-volume-value{ min-width:34px; }
 </style>
 </head>
 <body>
@@ -501,7 +507,7 @@
     <button class="nav-btn" data-tab="click">Click break</button>
     <button class="nav-btn" data-tab="mole">Whack-a-mole</button>
     <button class="nav-btn" data-tab="blast">Block Blast</button>
-    <button class="nav-btn" data-tab="mic">Mic check</button>
+    <button class="nav-btn" data-tab="mic">Focus Room</button>
   </nav>
   <div class="sidebar-footer">
     <div class="stealth-row">
@@ -659,9 +665,9 @@
     <div class="friend-list" id="friend-list"></div>
   </section>
 
-  <!-- Mic check -->
+  <!-- Focus Room -->
   <section class="panel" id="panel-mic">
-    <h2>Mic check</h2>
+    <h2>Focus Room</h2>
     <p class="subtext">Test your mic before a call. Audio stays on this PC — nothing is uploaded anywhere.</p>
     <div class="mic-card">
       <div class="mic-meter-label" id="mic-meter-label">Input level — press start and speak</div>
@@ -675,6 +681,17 @@
         <span class="mic-status" id="mic-status">Mic not active.</span>
       </div>
       <audio id="mic-playback" controls style="display:none; margin-top:16px; width:100%;"></audio>
+    </div>
+    <div class="noise-card">
+      <p>Play adjustable white noise to help create a steady focus environment.</p>
+      <div class="noise-controls">
+        <button class="btn primary" id="noise-toggle">Play white noise</button>
+        <label class="noise-volume" for="noise-volume">
+          Volume
+          <input type="range" id="noise-volume" min="0" max="100" value="50">
+          <span class="noise-volume-value" id="noise-volume-value">50%</span>
+        </label>
+      </div>
     </div>
   </section>
 
@@ -701,7 +718,7 @@ function activateTab(name){
   panels.forEach(p => p.classList.toggle('active', p.id === 'panel-' + name));
   localStorage.setItem('qd-last-tab', name);
   if(name !== 'mole'){ stopMole(); }
-  if(name !== 'mic'){ stopMicCheck(); }
+  if(name !== 'mic'){ stopMicCheck(); stopWhiteNoise(); }
   if(name === 'friend'){
     hideFriendBadge();
     markFriendTabSeen();
@@ -2261,6 +2278,62 @@ function recordMicClip(){
 micStartBtn.addEventListener('click', startMicCheck);
 micStopBtn.addEventListener('click', stopMicCheck);
 micRecordBtn.addEventListener('click', recordMicClip);
+
+const noiseToggleBtn = document.getElementById('noise-toggle');
+const noiseVolumeEl = document.getElementById('noise-volume');
+const noiseVolumeValueEl = document.getElementById('noise-volume-value');
+let noiseAudioCtx = null;
+let noiseProcessor = null;
+let noiseGain = null;
+
+const savedNoiseVolume = Number(localStorage.getItem('qd-whitenoise-volume'));
+if(Number.isFinite(savedNoiseVolume)) noiseVolumeEl.value = Math.min(100, Math.max(0, savedNoiseVolume));
+noiseVolumeValueEl.textContent = noiseVolumeEl.value + '%';
+
+function setNoiseVolume(){
+  const volume = Number(noiseVolumeEl.value);
+  localStorage.setItem('qd-whitenoise-volume', String(volume));
+  noiseVolumeValueEl.textContent = volume + '%';
+  if(noiseGain) noiseGain.gain.value = volume / 100;
+}
+
+async function startWhiteNoise(){
+  if(noiseAudioCtx) return;
+  noiseAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  noiseGain = noiseAudioCtx.createGain();
+  noiseGain.gain.value = Number(noiseVolumeEl.value) / 100;
+  noiseProcessor = noiseAudioCtx.createScriptProcessor(4096, 0, 1);
+  noiseProcessor.onaudioprocess = event => {
+    const output = event.outputBuffer.getChannelData(0);
+    for(let i = 0; i < output.length; i++) output[i] = Math.random() * 2 - 1;
+  };
+  noiseProcessor.connect(noiseGain);
+  noiseGain.connect(noiseAudioCtx.destination);
+  await noiseAudioCtx.resume();
+  noiseToggleBtn.textContent = 'Stop white noise';
+}
+
+function stopWhiteNoise(){
+  if(!noiseAudioCtx) return;
+  if(noiseProcessor){
+    noiseProcessor.onaudioprocess = null;
+    noiseProcessor.disconnect();
+    noiseProcessor = null;
+  }
+  if(noiseGain){
+    noiseGain.disconnect();
+    noiseGain = null;
+  }
+  noiseAudioCtx.close();
+  noiseAudioCtx = null;
+  noiseToggleBtn.textContent = 'Play white noise';
+}
+
+noiseToggleBtn.addEventListener('click', () => {
+  if(noiseAudioCtx) stopWhiteNoise();
+  else startWhiteNoise();
+});
+noiseVolumeEl.addEventListener('input', setNoiseVolume);
 
 /* ---------- Restore last tab ---------- */
 activateTab(localStorage.getItem('qd-last-tab') || 'notepad');
