@@ -69,11 +69,27 @@
   .nav-btn{
     all:unset;
     cursor:pointer;
+    position:relative;
     padding:11px 22px;
     font-size:14.5px;
     color:var(--text-dim);
     border-left:3px solid transparent;
     transition:background .15s ease,color .15s ease;
+  }
+  .nav-badge{
+    display:none;
+    position:absolute;
+    top:5px;
+    right:10px;
+    min-width:18px;
+    height:18px;
+    padding:0 4px;
+    border-radius:9px;
+    background:var(--danger);
+    color:#fff;
+    font-size:11px;
+    line-height:18px;
+    text-align:center;
   }
   .nav-btn:hover{ background:var(--surface-2); color:var(--text); }
   .nav-btn.active{
@@ -481,7 +497,7 @@
     <button class="nav-btn active" data-tab="notepad">Notepad</button>
     <button class="nav-btn" data-tab="tasks">Quick tasks</button>
     <button class="nav-btn" data-tab="bank">Response bank</button>
-    <button class="nav-btn" data-tab="friend">Call a friend</button>
+    <button class="nav-btn" data-tab="friend">Call a friend<span class="nav-badge" id="friend-badge"></span></button>
     <button class="nav-btn" data-tab="click">Click break</button>
     <button class="nav-btn" data-tab="mole">Whack-a-mole</button>
     <button class="nav-btn" data-tab="blast">Block Blast</button>
@@ -686,7 +702,11 @@ function activateTab(name){
   localStorage.setItem('qd-last-tab', name);
   if(name !== 'mole'){ stopMole(); }
   if(name !== 'mic'){ stopMicCheck(); }
-  if(name === 'friend'){ startFriendPolling(); } else { stopFriendPolling(); }
+  if(name === 'friend'){
+    hideFriendBadge();
+    markFriendTabSeen();
+    startFriendPolling();
+  } else { stopFriendPolling(); }
   if(name === 'notepad'){ startNotePolling(); } else { stopNotePolling(); }
   if(name !== 'blast' && blastDrag){
     window.removeEventListener('pointermove', onBlastPointerMove);
@@ -1967,9 +1987,55 @@ const friendTextEl = document.getElementById('friend-text');
 const friendPostBtn = document.getElementById('friend-post-btn');
 const friendStatusEl = document.getElementById('friend-status');
 const friendListEl = document.getElementById('friend-list');
+const friendBadgeEl = document.getElementById('friend-badge');
 
 let friendPollTimer = null;
+let friendUnreadTimer = null;
 let friendPosting = false;
+const friendLastSeenKey = 'qd-friend-last-seen';
+
+function hideFriendBadge(){
+  friendBadgeEl.textContent = '';
+  friendBadgeEl.style.display = 'none';
+}
+
+function updateFriendBadge(count){
+  if(!count){
+    hideFriendBadge();
+    return;
+  }
+  friendBadgeEl.textContent = count > 9 ? '9+' : String(count);
+  friendBadgeEl.style.display = 'inline-flex';
+}
+
+async function markFriendTabSeen(){
+  const { data, error } = await sb.from('friend_posts')
+    .select('created_at')
+    .order('created_at', { ascending: false })
+    .limit(1);
+  if(error){
+    console.error('Failed to mark friend posts as seen:', error);
+    return;
+  }
+  if(data && data[0]) localStorage.setItem(friendLastSeenKey, data[0].created_at);
+}
+
+async function checkFriendUnread(){
+  const lastSeen = localStorage.getItem(friendLastSeenKey);
+  let query = sb.from('friend_posts').select('id', { count: 'exact', head: true });
+  if(lastSeen) query = query.gt('created_at', lastSeen);
+  const { count, error } = await query;
+  if(error){
+    console.error('Failed to check unread friend posts:', error);
+    return;
+  }
+  updateFriendBadge(count || 0);
+}
+
+function startFriendUnreadPolling(){
+  checkFriendUnread();
+  friendUnreadTimer = setInterval(checkFriendUnread, 15000);
+}
 
 function timeAgo(iso){
   const diffSec = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 1000));
@@ -2070,6 +2136,8 @@ function startFriendPolling(){
 function stopFriendPolling(){
   if(friendPollTimer){ clearInterval(friendPollTimer); friendPollTimer = null; }
 }
+
+startFriendUnreadPolling();
 
 /* ---------- Mic check ---------- */
 const micStartBtn = document.getElementById('mic-start');
