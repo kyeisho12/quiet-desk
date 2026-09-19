@@ -27,7 +27,7 @@
   body{
     margin:0;
     display:flex;
-    background:var(--bg);
+    background:radial-gradient(circle at 78% 16%, rgba(79,169,162,.08), transparent 30%), var(--bg);
     color:var(--text);
     font-family:'Inter','Segoe UI',system-ui,sans-serif;
     -webkit-font-smoothing:antialiased;
@@ -38,30 +38,31 @@
 
   /* Sidebar */
   .sidebar{
-    width:220px;
+    width:64px;
     flex-shrink:0;
     background:var(--surface);
     border-right:1px solid var(--border);
     display:flex;
     flex-direction:column;
-    padding:22px 0;
+    padding:16px 0;
   }
   .brand{
-    font-size:18px;
+    font-size:15px;
     font-weight:600;
-    padding:0 22px 20px 22px;
+    padding:0 0 16px;
     border-bottom:1px solid var(--border);
-    margin-bottom:14px;
-    letter-spacing:.2px;
+    margin-bottom:12px;
+    text-align:center;
+    letter-spacing:.5px;
   }
-  .brand span{ color:var(--accent); }
+  .brand span{ display:none; }
+  .workspace{ flex:1; min-width:0; min-height:100%; display:flex; flex-direction:column; }
   .display-name-box{
-    padding:0 22px 16px 22px; margin-bottom:6px; border-bottom:1px solid var(--border);
-    display:flex; flex-direction:column; gap:5px;
+    display:flex; align-items:center; gap:8px;
   }
   .display-name-box label{ font-size:11px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.4px; }
   .display-name-box input{
-    background:var(--surface-2); border:1px solid var(--border); border-radius:7px;
+    width:180px; background:var(--surface-2); border:1px solid var(--border); border-radius:7px;
     padding:7px 9px; color:var(--text); font-size:13px; font-family:'Inter',sans-serif; outline:none;
   }
   .display-name-box input:focus{ border-color:var(--accent); }
@@ -70,17 +71,22 @@
     all:unset;
     cursor:pointer;
     position:relative;
-    padding:11px 22px;
-    font-size:14.5px;
+    width:64px;
+    height:46px;
+    padding:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
     color:var(--text-dim);
     border-left:3px solid transparent;
     transition:background .15s ease,color .15s ease;
   }
+  .nav-btn svg{ width:21px; height:21px; stroke:currentColor; fill:none; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
   .nav-badge{
     display:none;
     position:absolute;
-    top:5px;
-    right:10px;
+    top:4px;
+    right:4px;
     min-width:18px;
     height:18px;
     padding:0 4px;
@@ -97,11 +103,7 @@
     color:var(--text);
     border-left:3px solid var(--accent);
     font-weight:500;
-  }
-  .sidebar-footer{
-    margin-top:auto;
-    padding:16px 22px 0 22px;
-    border-top:1px solid var(--border);
+    box-shadow:0 0 12px rgba(232,163,61,.5);
   }
   .stealth-row{
     display:flex;
@@ -110,6 +112,17 @@
     gap:10px;
   }
   .stealth-row span{ font-size:12.5px; color:var(--text-dim); }
+  .topbar{
+    height:52px;
+    flex-shrink:0;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:0 28px;
+    background:var(--surface);
+    border-bottom:1px solid var(--border);
+  }
+  .topbar .stealth-row{ gap:10px; }
   .switch{
     position:relative; width:36px; height:20px; flex-shrink:0;
   }
@@ -126,10 +139,10 @@
   .switch input:checked + .slider::before{ transform:translateX(16px); background:var(--bg); }
 
   /* Main area */
-  main{ flex:1; padding:40px 44px; overflow:auto; }
+  main{ flex:1; min-height:0; padding:40px 44px; overflow:auto; background:radial-gradient(circle at 50% 0%, rgba(232,163,61,.045), transparent 42%); }
   .panel{ display:none; max-width:760px; }
   .panel.active{ display:block; }
-  #panel-notepad.active{ max-width:none; } /* the bento layout needs the full window width */
+  #panel-notepad.active{ max-width:none; background:radial-gradient(circle at top, rgba(232,163,61,.06), transparent 60%); }
   .panel h2{ font-size:22px; margin:0 0 4px 0; font-weight:600; }
   .subtext{ color:var(--text-dim); font-size:13.5px; margin:0 0 26px 0; }
   #panel-click.active{
@@ -141,35 +154,25 @@
     justify-content:center;
     text-align:center;
   }
-  .shared-warning{
-    background:#4a2f13; border:1px solid var(--accent); color:#f0c98a;
-    font-size:12.5px; line-height:1.5; border-radius:8px; padding:9px 12px;
-    margin:-14px 0 20px 0;
-  }
+  .shared-warning{ background:#4a2f13; border:1px solid var(--accent); color:#f0c98a; font-size:12.5px; line-height:1.5; border-radius:8px; padding:9px 12px; margin:-14px 0 20px 0; }
 
   /* Notepad */
-  .notepad-layout{
-    display:grid; grid-template-columns:minmax(320px, 480px) 1fr; grid-template-rows:auto 1fr;
-    gap:24px; align-items:start;
-  }
-  .notepad-main{ grid-column:1; grid-row:1; min-width:0; }
-  .notepad-sidebar{ grid-column:1; grid-row:2; min-width:0; }
-  .notepad-pinboard{
-    grid-column:2; grid-row:1 / 3; min-width:0;
-    background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
-    padding:18px 20px;
-  }
+  .notepad-layout{ display:grid; grid-template-columns:minmax(320px, 480px) minmax(260px, 1fr); gap:24px; align-items:start; }
+  .notepad-main{ grid-column:1; min-width:0; }
+  .notepad-sidebar{ grid-column:2; min-width:0; }
   @media (max-width: 1100px){
-    .notepad-layout{ grid-template-columns:1fr; grid-template-rows:auto auto auto; }
+    .notepad-layout{ grid-template-columns:1fr; }
     .notepad-main{ grid-column:1; grid-row:1; }
     .notepad-sidebar{ grid-column:1; grid-row:2; }
-    .notepad-pinboard{ grid-column:1; grid-row:3; }
   }
-  .notepad-sidebar h3, .notepad-pinboard h3{
+  .notepad-sidebar h3{
     font-size:12px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.5px;
     margin-bottom:12px; font-weight:600;
   }
-  .pinboard-hint{ font-size:12px; color:var(--text-dim); margin:-6px 0 14px 0; line-height:1.5; }
+  .notepad-heading{ display:flex; align-items:center; gap:8px; }
+  .notepad-warning{ position:relative; display:inline-flex; align-items:center; justify-content:center; width:18px; height:18px; color:var(--accent); cursor:help; font-size:14px; }
+  .notepad-warning::after{ content:attr(data-warning); position:absolute; z-index:30; left:24px; top:-5px; width:260px; padding:9px 11px; border:1px solid var(--accent); border-radius:8px; background:#4a2f13; color:#f0c98a; font-size:12px; line-height:1.45; opacity:0; pointer-events:none; transform:translateY(4px); transition:opacity .15s ease,transform .15s ease; }
+  .notepad-warning:hover::after, .notepad-warning:focus::after{ opacity:1; pointer-events:auto; transform:translateY(0); }
   .notepad-title-input{
     width:100%; box-sizing:border-box; margin-bottom:10px;
     background:var(--surface); border:1px solid var(--border); border-radius:8px;
@@ -182,15 +185,17 @@
     background:var(--surface); border:1px solid var(--border);
     border-radius:var(--radius); color:var(--text);
     font-family:'Inter',sans-serif; font-size:14.5px; line-height:1.6;
-    padding:16px; outline:none; box-sizing:border-box;
+    padding:16px; outline:none; box-sizing:border-box; box-shadow:inset 0 1px 4px rgba(0,0,0,.3);
   }
-  #notepad-text:focus{ border-color:var(--accent); }
+  #notepad-text:focus{ border-color:var(--accent-2); box-shadow:inset 0 1px 4px rgba(0,0,0,.3), 0 0 0 1px rgba(79,169,162,.35); }
   .np-bar{
     display:flex; align-items:center; justify-content:space-between;
     margin-top:12px; flex-wrap:wrap; gap:10px;
   }
   .np-meta{ color:var(--text-dim); font-size:12.5px; }
   .np-actions{ display:flex; gap:10px; }
+  .note-inline-image{ max-width:280px; max-height:280px; margin:6px 8px 6px 0; border-radius:var(--radius); vertical-align:middle; cursor:pointer; }
+  .note-card-text a{ color:var(--accent); text-decoration:underline; }
   .note-search{ width:100%; box-sizing:border-box; margin-bottom:14px; }
   .note-card{
     background:var(--surface); border:1px solid var(--border); border-radius:10px;
@@ -216,6 +221,11 @@
   }
   .note-show-btn:hover{ color:var(--accent); border-color:var(--accent); }
   .note-show-btn.active{ color:var(--accent); border-color:var(--accent); background:rgba(232,163,61,.12); }
+  .note-download-btn{ all:unset; cursor:pointer; font-size:11.5px; color:var(--text-dim); border:1px solid var(--border); border-radius:6px; padding:3px 9px; flex-shrink:0; }
+  .note-download-btn:hover{ color:var(--accent); border-color:var(--accent); }
+  .note-card-action-btn{ all:unset; cursor:pointer; font-size:11.5px; color:var(--text-dim); padding:3px 0; flex-shrink:0; }
+  .note-card-action-btn:hover{ color:var(--accent); }
+  .note-card-action-btn.danger:hover{ color:var(--danger); }
   .note-card-body{ padding:0 16px 14px 16px; }
   .note-card-author{ font-size:12px; font-weight:600; color:var(--accent-2); margin-bottom:6px; }
   .note-card-text{ font-size:13.5px; line-height:1.6; white-space:pre-wrap; margin-bottom:8px; }
@@ -517,27 +527,87 @@
   .noise-volume{ display:flex; align-items:center; gap:9px; color:var(--text-dim); font-size:12px; }
   .noise-volume input{ width:150px; accent-color:var(--accent); }
   .noise-volume-value{ min-width:34px; }
+
+  .notepad-pinboard,
+  .note-card,
+  .pin-card,
+  .mic-card,
+  .noise-card,
+  .friend-card,
+  .bank-card,
+  .friend-form,
+  .bank-form,
+  .tray-slot{
+    background:rgba(35,45,59,.55);
+    border-color:rgba(255,255,255,.08);
+    backdrop-filter:blur(12px);
+    -webkit-backdrop-filter:blur(12px);
+  }
+
+  /* Drawpad */
+  #panel-drawpad.active{
+    max-width:none;
+    height:100%;
+    display:flex;
+    flex-direction:column;
+    min-height:0;
+  }
+  .drawpad-toolbar{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    flex-wrap:wrap;
+    margin-bottom:14px;
+  }
+  .drawpad-toolbar .btn{ padding:7px 11px; font-size:12.5px; }
+  .drawpad-tool-group{
+    display:flex;
+    align-items:center;
+    gap:7px;
+    padding-right:8px;
+    border-right:1px solid var(--border);
+  }
+  .drawpad-toolbar label{ color:var(--text-dim); font-size:12px; }
+  #drawpad-color{ width:32px; height:30px; padding:2px; border:1px solid var(--border); background:var(--surface-2); }
+  #drawpad-size{ width:110px; accent-color:var(--accent); }
+  #drawpad-size-value, #drawpad-zoom-value{ color:var(--text); font-size:12px; min-width:38px; }
+  .drawpad-viewport{
+    position:relative;
+    flex:1;
+    min-height:320px;
+    overflow:hidden;
+    background:var(--surface-2);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,.02);
+  }
+  #drawpad-canvas{ display:block; width:100%; height:100%; touch-action:none; cursor:crosshair; }
+  #drawpad-canvas.panning{ cursor:grabbing; }
 </style>
 </head>
 <body>
 
 <div class="sidebar">
-  <div class="brand">Quiet <span>Desk</span></div>
-  <div class="display-name-box">
-    <label for="display-name">Your name</label>
-    <input type="text" id="display-name" placeholder="e.g. Kyeisho">
-  </div>
+  <div class="brand" title="Quiet Desk">QD</div>
   <nav>
-    <button class="nav-btn active" data-tab="notepad">Notepad</button>
-    <button class="nav-btn" data-tab="tasks">Quick tasks</button>
-    <button class="nav-btn" data-tab="bank">Response bank</button>
-    <button class="nav-btn" data-tab="friend">Call a friend<span class="nav-badge" id="friend-badge"></span></button>
-    <button class="nav-btn" data-tab="click">Click break</button>
-    <button class="nav-btn" data-tab="mole">Whack-a-mole</button>
-    <button class="nav-btn" data-tab="blast">Block Blast</button>
-    <button class="nav-btn" data-tab="mic">Focus Room</button>
+    <button class="nav-btn active" data-tab="notepad" title="Notepad"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3.5h10l4 4V20.5H5z"/><path d="M15 3.5v5h4M8 13h8M8 17h6"/><path d="m7 8 2-2 2 2-2 2z"/></svg></button>
+    <button class="nav-btn" data-tab="tasks" title="Quick tasks"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="m7 9 1.5 1.5L11 8M13 9h4M7 15l1.5 1.5L11 14M13 15h4"/></svg></button>
+    <button class="nav-btn" data-tab="bank" title="Response bank"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H19v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M4 5.5v15M8 7h7M8 11h7"/></svg></button>
+    <button class="nav-btn" data-tab="friend" title="Call a friend"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8a2.5 2.5 0 0 1-2.5 2.5H11l-4.5 4v-4h0A2.5 2.5 0 0 1 4 13.5z"/><path d="M8 8h8M8 12h5"/></svg><span class="nav-badge" id="friend-badge"></span></button>
+    <button class="nav-btn" data-tab="click" title="Click break"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 3 2 14 4-4 3 6 2-1-3-6 6-1z"/></svg></button>
+    <button class="nav-btn" data-tab="mole" title="Whack-a-mole"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="m16 16 4 4M8 11h6M11 8v6"/></svg></button>
+    <button class="nav-btn" data-tab="blast" title="Block Blast"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/></svg></button>
+    <button class="nav-btn" data-tab="mic" title="Focus Room"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 13a5 5 0 0 0 10 0M5 11v2a7 7 0 0 0 14 0v-2M12 4v3M9 20h6"/><path d="M3 10v4M21 10v4"/></svg></button>
+    <button class="nav-btn" data-tab="drawpad" title="Drawpad"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 20 4.5-1 10-10a2.1 2.1 0 0 0-3-3l-10 10z"/><path d="m13.5 7.5 3 3M4 20h5"/></svg></button>
   </nav>
-  <div class="sidebar-footer">
+</div>
+
+<div class="workspace">
+  <header class="topbar">
+    <div class="display-name-box">
+      <label for="display-name">Your name</label>
+      <input type="text" id="display-name" placeholder="e.g. Kyeisho">
+    </div>
     <div class="stealth-row">
       <span>Stealth mode</span>
       <label class="switch">
@@ -545,16 +615,14 @@
         <span class="slider"></span>
       </label>
     </div>
-  </div>
-</div>
+  </header>
 
 <main>
 
   <!-- Notepad -->
   <section class="panel active" id="panel-notepad">
-    <h2>Notepad</h2>
+    <h2 class="notepad-heading">Notepad <span class="notepad-warning" tabindex="0" data-warning="Shared with anyone who has this link — saved notes are visible to everyone, and edits/deletes affect the shared list.">⚠</span></h2>
     <p class="subtext">Write a note — it saves automatically after 30 minutes of inactivity, or save it manually anytime. Select text in a saved note below to highlight it.</p>
-    <div class="shared-warning">⚠ Shared with anyone who has this link — saved notes are visible to everyone, and edits/deletes affect the shared list.</div>
 
     <div class="notepad-layout">
       <div class="notepad-main">
@@ -573,11 +641,6 @@
         <h3>Notebank</h3>
         <input type="text" class="bank-search note-search" id="note-search" placeholder="Search notes...">
         <div id="note-list"></div>
-      </div>
-      <div class="notepad-pinboard">
-        <h3>👁 Shown <span id="pin-count"></span></h3>
-        <p class="pinboard-hint">Click "Show" on any note to display it here, fully expanded. Personal to this browser.</p>
-        <div id="pin-list"></div>
       </div>
     </div>
   </section>
@@ -714,7 +777,42 @@
     </div>
   </section>
 
+  <!-- Drawpad -->
+  <section class="panel" id="panel-drawpad">
+    <h2>Drawpad</h2>
+    <p class="subtext">Sketch freely, zoom into details, and pan around the canvas.</p>
+    <div class="drawpad-toolbar">
+      <div class="drawpad-tool-group">
+        <button class="btn primary" id="drawpad-pencil" type="button">Brush</button>
+        <button class="btn ghost" id="drawpad-eraser" type="button">Eraser</button>
+      </div>
+      <div class="drawpad-tool-group">
+        <label for="drawpad-color">Color</label>
+        <input id="drawpad-color" type="color" value="#E8A33D">
+        <label for="drawpad-size">Size</label>
+        <input id="drawpad-size" type="range" min="1" max="120" value="18">
+        <span id="drawpad-size-value">18 px</span>
+      </div>
+      <div class="drawpad-tool-group">
+        <button class="btn" id="drawpad-undo" type="button">Undo</button>
+        <button class="btn ghost" id="drawpad-clear" type="button">Clear</button>
+        <button class="btn ghost" id="drawpad-reset-canvas" type="button">Reset canvas</button>
+      </div>
+      <div class="drawpad-tool-group">
+        <button class="btn" id="drawpad-zoom-out" type="button" aria-label="Zoom out">-</button>
+        <span id="drawpad-zoom-value">100%</span>
+        <button class="btn" id="drawpad-zoom-in" type="button" aria-label="Zoom in">+</button>
+        <button class="btn ghost" id="drawpad-reset" type="button">Reset view</button>
+      </div>
+      <button class="btn primary" id="drawpad-export" type="button">Download as PNG</button>
+    </div>
+    <div class="drawpad-viewport" id="drawpad-viewport">
+      <canvas id="drawpad-canvas" aria-label="Drawing canvas"></canvas>
+    </div>
+  </section>
+
 </main>
+</div>
 
 <script>
 /* ---------- Supabase setup ---------- */
@@ -738,6 +836,7 @@ function activateTab(name){
   localStorage.setItem('qd-last-tab', name);
   if(name !== 'mole'){ stopMole(); }
   if(name !== 'mic'){ stopMicCheck(); stopWhiteNoise(); }
+  if(name === 'drawpad'){ initDrawpad(); }
   if(name === 'friend'){
     hideFriendBadge();
     markFriendTabSeen();
@@ -779,6 +878,8 @@ let npPollTimer = null;
 let lastNotes = [];
 let inlineEditingId = null;
 let expandedNoteId = null;
+let currentNoteImages = {};
+let editNoteImages = {};
 let pinnedNoteIds = new Set(JSON.parse(localStorage.getItem('qd-pinned-notes') || '[]'));
 let shownNoteIds = new Set(JSON.parse(localStorage.getItem('qd-shown-notes') || '[]'));
 
@@ -798,57 +899,115 @@ function togglePin(noteId){
 }
 
 function toggleShow(noteId){
-  if(shownNoteIds.has(noteId)) shownNoteIds.delete(noteId);
-  else shownNoteIds.add(noteId);
-  saveShown();
-  renderNotes(lastNotes);
-  renderShowPanel();
+  const note = lastNotes.find(item => item.id === noteId);
+  if(note) openNoteReader(note);
 }
 
 const pinListEl = document.getElementById('pin-list');
 const pinCountEl = document.getElementById('pin-count');
 
 function renderShowPanel(){
-  const shown = lastNotes.filter(n => shownNoteIds.has(n.id));
-  pinCountEl.textContent = shown.length ? `(${shown.length})` : '';
-  pinListEl.innerHTML = '';
-  if(shown.length === 0){
-    pinListEl.innerHTML = '<div class="empty-note">Nothing shown yet.</div>';
-    return;
-  }
-  shown.forEach(n => {
-    const card = document.createElement('div');
-    card.className = 'pin-card';
+  return;
+}
 
-    const head = document.createElement('div');
-    head.className = 'pin-card-head';
-    const title = document.createElement('div');
-    title.className = 'pin-card-title';
-    title.textContent = noteTitle(n);
-    const time = document.createElement('div');
-    time.className = 'note-card-time';
-    time.textContent = timeAgo(n.updated_at || n.created_at);
-    head.append(title, time);
+function openNoteReader(note){
+  const reader = window.open('', '_blank');
+  if(!reader) return;
+  const title = noteTitle(note);
+  const safeTitle = title.replace(/[&<>"']/g, char => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[char]));
+  const body = replaceImageTokensHtml(linkifyNoteHtml(sanitizeNoteHtml(note.text)), note.images || {});
+  reader.document.write(`<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>${safeTitle}</title><style>body{margin:0;padding:clamp(28px,8vw,100px);background:#1B2430;color:#EDEEF0;font-family:Inter,'Segoe UI',sans-serif;line-height:1.75}main{max-width:820px;margin:0 auto}h1{font-family:'Space Grotesk','Segoe UI',sans-serif;font-size:clamp(26px,4vw,42px);line-height:1.2;margin:0 0 28px;color:#E8A33D}article{font-size:18px;white-space:pre-wrap}.note-inline-image{max-width:280px;max-height:280px;margin:6px 8px 6px 0;border-radius:10px;vertical-align:middle;cursor:pointer}mark{padding:1px 3px;border-radius:3px}mark[data-hl="yellow"]{background:rgba(255,235,59,.35)}mark[data-hl="green"]{background:rgba(76,175,80,.4)}mark[data-hl="pink"]{background:rgba(240,98,146,.4)}mark[data-hl="blue"]{background:rgba(41,182,246,.4)}</style></head><body><main><h1>${safeTitle}</h1><article>${body}</article></main></body></html>`);
+  reader.document.close();
+}
 
-    const author = document.createElement('div');
-    author.className = 'pin-card-author';
-    author.textContent = n.author && n.author.trim() ? n.author : 'Anonymous';
+function downloadNote(note){
+  const title = noteTitle(note);
+  downloadTxt(`${title}\n\n${toPlainText(note.text)}`, title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'note');
+}
 
-    const textEl = document.createElement('div');
-    textEl.className = 'pin-card-text';
-    textEl.innerHTML = sanitizeNoteHtml(n.text);
-
-    const actions = document.createElement('div');
-    actions.className = 'pin-card-actions';
-    const hideBtn = document.createElement('button');
-    hideBtn.textContent = 'Hide';
-    hideBtn.addEventListener('click', () => toggleShow(n.id));
-    actions.appendChild(hideBtn);
-
-    card.append(head, author, textEl, actions);
-    pinListEl.appendChild(card);
+function replaceImageTokensHtml(html, images){
+  return html.replace(/\[image:\d+\]/g, token => {
+    const src = images && images[token.slice(1, -1)];
+    if(!src) return token;
+    return `<img class="note-inline-image" src="${src}" alt="Attached image" onclick="window.open(this.src,'_blank')">`;
   });
 }
+
+function replaceImageTokensInElement(element, images){
+  const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+  const textNodes = [];
+  while(walker.nextNode()) textNodes.push(walker.currentNode);
+  textNodes.forEach(node => {
+    const pattern = /\[image:\d+\]/g;
+    if(!pattern.test(node.nodeValue)) return;
+    pattern.lastIndex = 0;
+    const fragment = document.createDocumentFragment();
+    let lastIndex = 0;
+    let match;
+    while((match = pattern.exec(node.nodeValue))){
+      fragment.appendChild(document.createTextNode(node.nodeValue.slice(lastIndex, match.index)));
+      const src = images && images[match[0].slice(1, -1)];
+      if(src){
+        const image = document.createElement('img');
+        image.className = 'note-inline-image';
+        image.src = src;
+        image.alt = 'Attached image';
+        image.addEventListener('click', event => {
+          event.stopPropagation();
+          const reader = window.open('', '_blank');
+          if(reader){ reader.document.write('<!DOCTYPE html><html><body style="margin:0;display:grid;place-items:center;min-height:100vh;background:#1B2430"><img style="max-width:96vw;max-height:96vh" src="' + src + '" alt="Attached image"></body></html>'); reader.document.close(); }
+        });
+        fragment.appendChild(image);
+      } else fragment.appendChild(document.createTextNode(match[0]));
+      lastIndex = match.index + match[0].length;
+    }
+    fragment.appendChild(document.createTextNode(node.nodeValue.slice(lastIndex)));
+    node.replaceWith(fragment);
+  });
+}
+
+function compressPastedImage(file){
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const image = new Image();
+      image.onload = () => {
+        const scale = Math.min(1, 1200 / Math.max(image.naturalWidth, image.naturalHeight));
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+        canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+        canvas.getContext('2d').drawImage(image, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL('image/jpeg', .7));
+      };
+      image.onerror = reject;
+      image.src = reader.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+function insertImageToken(textarea, imageMap, image){
+  const usedNumbers = Object.keys(imageMap).map(token => Number(token.split(':')[1])).filter(Number.isFinite);
+  const token = 'image:' + ((usedNumbers.length ? Math.max(...usedNumbers) : 0) + 1);
+  imageMap[token] = image;
+  const marker = '[' + token + ']';
+  const start = textarea.selectionStart;
+  const end = textarea.selectionEnd;
+  textarea.value = textarea.value.slice(0, start) + marker + textarea.value.slice(end);
+  textarea.selectionStart = textarea.selectionEnd = start + marker.length;
+  textarea.dispatchEvent(new Event('input', { bubbles:true }));
+}
+
+function handleImagePaste(textarea, imageMap, event){
+  const imageItem = [...event.clipboardData.items].find(item => item.type.startsWith('image/'));
+  if(!imageItem) return;
+  event.preventDefault();
+  const file = imageItem.getAsFile();
+  if(file) compressPastedImage(file).then(image => insertImageToken(textarea, imageMap, image)).catch(error => console.error('Could not paste image:', error));
+}
+
+npText.addEventListener('paste', event => handleImagePaste(npText, currentNoteImages, event));
 
 function downloadTxt(text, filenameBase){
   const blob = new Blob([text], { type: 'text/plain' });
@@ -958,24 +1117,63 @@ function toPlainText(storedHtml){
   return div.textContent;
 }
 
-async function commitNote(plainText, title){
+function linkifyNoteHtml(html){
+  const parsed = new DOMParser().parseFromString('<div>' + html + '</div>', 'text/html');
+  const root = parsed.body.firstChild;
+  const urlPattern = /(https?:\/\/[^\s<]+|www\.[^\s<]+)/gi;
+  const trailingPunctuation = /[.,!?;:)]$/;
+  const walk = node => {
+    [...node.childNodes].forEach(child => {
+      if(child.nodeType === Node.TEXT_NODE){
+        const text = child.nodeValue;
+        let match;
+        let lastIndex = 0;
+        const fragment = parsed.createDocumentFragment();
+        urlPattern.lastIndex = 0;
+        while((match = urlPattern.exec(text))){
+          fragment.appendChild(parsed.createTextNode(text.slice(lastIndex, match.index)));
+          let url = match[0];
+          let suffix = '';
+          while(trailingPunctuation.test(url)) suffix = url.slice(-1) + suffix, url = url.slice(0, -1);
+          const link = parsed.createElement('a');
+          link.href = url.startsWith('www.') ? 'https://' + url : url;
+          link.target = '_blank';
+          link.rel = 'noopener noreferrer';
+          link.textContent = url;
+          fragment.appendChild(link);
+          if(suffix) fragment.appendChild(parsed.createTextNode(suffix));
+          lastIndex = match.index + match[0].length;
+        }
+        if(lastIndex){
+          fragment.appendChild(parsed.createTextNode(text.slice(lastIndex)));
+          child.replaceWith(fragment);
+        }
+      } else if(child.nodeType === Node.ELEMENT_NODE && child.tagName !== 'A') walk(child);
+    });
+  };
+  walk(root);
+  return root.innerHTML;
+}
+
+async function commitNote(plainText, title, images = []){
   const author = getDisplayName();
   const html = escapeToStoredHtml(plainText);
-  const row = { text: html, author };
+  const row = { text: html, author, images };
   if(title && title.trim()) row.title = title.trim();
   return sb.from('notes').insert(row).select();
 }
 
 async function autoSaveNote(){
   const text = npText.value.trim();
-  if(!text) return;
-  const { error } = await commitNote(text, npTitle.value);
+  if(!text && !Object.keys(currentNoteImages).length) return;
+  const { error } = await commitNote(text, npTitle.value, currentNoteImages);
   if(error){
     console.error('Failed to auto-save note:', error);
     return; // leave the draft in place, we'll retry on the next idle tick or manual save
   }
   npTitle.value = '';
   npText.value = '';
+  currentNoteImages = {};
   clearLocalDraft();
   updateNpMeta();
   loadNotes();
@@ -1002,6 +1200,7 @@ npTitle.addEventListener('input', () => {
 npClear.addEventListener('click', () => {
   npTitle.value = '';
   npText.value = '';
+  currentNoteImages = {};
   clearTimeout(npIdleTimer);
   clearLocalDraft();
   updateNpMeta();
@@ -1010,9 +1209,9 @@ npClear.addEventListener('click', () => {
 
 npSaveBtn.addEventListener('click', async () => {
   const text = npText.value.trim();
-  if(!text) return;
+  if(!text && !Object.keys(currentNoteImages).length) return;
   npSaveBtn.disabled = true;
-  const { error } = await commitNote(text, npTitle.value);
+  const { error } = await commitNote(text, npTitle.value, currentNoteImages);
   npSaveBtn.disabled = false;
   if(error){
     console.error('Failed to save note:', error);
@@ -1021,6 +1220,7 @@ npSaveBtn.addEventListener('click', async () => {
   }
   npTitle.value = '';
   npText.value = '';
+  currentNoteImages = {};
   clearTimeout(npIdleTimer);
   clearLocalDraft();
   updateNpMeta();
@@ -1045,8 +1245,6 @@ function renderNotes(notes){
 
   sorted.forEach(n => {
     const isPinned = pinnedNoteIds.has(n.id);
-    const isShown = shownNoteIds.has(n.id);
-
     const card = document.createElement('div');
     card.className = 'note-card' + (isPinned ? ' pinned' : '');
 
@@ -1066,11 +1264,16 @@ function renderNotes(notes){
     time.className = 'note-card-time';
     time.textContent = timeAgo(n.updated_at || n.created_at);
     const showBtn = document.createElement('button');
-    showBtn.className = 'note-show-btn' + (isShown ? ' active' : '');
-    showBtn.textContent = isShown ? 'Hide' : 'Show';
-    showBtn.title = isShown ? 'Remove from the right panel' : 'Show fully expanded on the right';
+    showBtn.className = 'note-show-btn';
+    showBtn.textContent = 'Show';
+    showBtn.title = 'Open this note in a new tab';
     showBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleShow(n.id); });
-    right.append(pinBtn, time, showBtn);
+    const downloadBtn = document.createElement('button');
+    downloadBtn.className = 'note-download-btn';
+    downloadBtn.textContent = 'Download';
+    downloadBtn.title = 'Download as .txt';
+    downloadBtn.addEventListener('click', e => { e.stopPropagation(); downloadNote(n); });
+    right.append(pinBtn, time, showBtn, downloadBtn);
     titlebar.append(title, right);
     titlebar.addEventListener('click', () => {
       if(inlineEditingId === n.id) return; // don't collapse out from under an active edit
@@ -1099,6 +1302,8 @@ function renderNotes(notes){
         const editArea = document.createElement('textarea');
         editArea.className = 'note-card-editbox';
         editArea.value = toPlainText(n.text);
+        editNoteImages = { ...(n.images || {}) };
+        editArea.addEventListener('paste', event => handleImagePaste(editArea, editNoteImages, event));
 
         const editActions = document.createElement('div');
         editActions.className = 'note-card-actions';
@@ -1113,6 +1318,7 @@ function renderNotes(notes){
               text: escapeToStoredHtml(newText),
               title: titleInput.value.trim() || null,
               author: getDisplayName(),
+              images: editNoteImages,
               updated_at: new Date().toISOString()
             })
             .eq('id', n.id);
@@ -1146,20 +1352,36 @@ function renderNotes(notes){
         const textEl = document.createElement('div');
         textEl.className = 'note-card-text';
         textEl.dataset.noteId = n.id;
-        textEl.innerHTML = sanitizeNoteHtml(n.text);
+        textEl.innerHTML = linkifyNoteHtml(sanitizeNoteHtml(n.text));
 
-        const actions = document.createElement('div');
-        actions.className = 'note-card-actions';
+        replaceImageTokensInElement(textEl, n.images || {});
+
+        const copyBtn = document.createElement('button');
+        copyBtn.textContent = 'Copy';
+        copyBtn.className = 'note-card-action-btn';
+        copyBtn.addEventListener('click', async event => {
+          event.stopPropagation();
+          try{
+            await navigator.clipboard.writeText(toPlainText(n.text));
+            copyBtn.textContent = 'Copied!';
+            setTimeout(() => { copyBtn.textContent = 'Copy'; }, 1500);
+          }catch(error){
+            console.error('Failed to copy note:', error);
+          }
+        });
         const editBtn = document.createElement('button');
+        editBtn.className = 'note-card-action-btn';
         editBtn.textContent = 'Edit';
-        editBtn.addEventListener('click', () => {
+        editBtn.addEventListener('click', event => {
+          event.stopPropagation();
           inlineEditingId = n.id;
           renderNotes(lastNotes);
         });
         const delBtn = document.createElement('button');
-        delBtn.className = 'danger';
+        delBtn.className = 'note-card-action-btn danger';
         delBtn.textContent = 'Delete';
-        delBtn.addEventListener('click', async () => {
+        delBtn.addEventListener('click', async event => {
+          event.stopPropagation();
           if(!confirm('Delete this note for everyone?')) return;
           delBtn.disabled = true;
           const { error } = await sb.from('notes').delete().eq('id', n.id);
@@ -1172,9 +1394,9 @@ function renderNotes(notes){
           if(expandedNoteId === n.id) expandedNoteId = null;
           loadNotes();
         });
-        actions.append(editBtn, delBtn);
+        right.append(copyBtn, editBtn, delBtn);
 
-        body.append(textEl, actions);
+        body.appendChild(textEl);
       }
 
       card.appendChild(body);
@@ -2380,6 +2602,329 @@ noiseToggleBtn.addEventListener('click', () => {
   else startWhiteNoise();
 });
 noiseVolumeEl.addEventListener('input', setNoiseVolume);
+
+const drawpadViewport = document.getElementById('drawpad-viewport');
+const drawpadCanvas = document.getElementById('drawpad-canvas');
+const drawpadCtx = drawpadCanvas.getContext('2d');
+const drawpadPencilBtn = document.getElementById('drawpad-pencil');
+const drawpadEraserBtn = document.getElementById('drawpad-eraser');
+const drawpadColorEl = document.getElementById('drawpad-color');
+const drawpadSizeEl = document.getElementById('drawpad-size');
+const drawpadSizeValueEl = document.getElementById('drawpad-size-value');
+const drawpadUndoBtn = document.getElementById('drawpad-undo');
+const drawpadClearBtn = document.getElementById('drawpad-clear');
+const drawpadResetCanvasBtn = document.getElementById('drawpad-reset-canvas');
+const drawpadZoomOutBtn = document.getElementById('drawpad-zoom-out');
+const drawpadZoomInBtn = document.getElementById('drawpad-zoom-in');
+const drawpadZoomValueEl = document.getElementById('drawpad-zoom-value');
+const drawpadResetBtn = document.getElementById('drawpad-reset');
+const drawpadExportBtn = document.getElementById('drawpad-export');
+const DRAWPAD_SIZE = 3000;
+const DRAWPAD_STROKES_KEY = 'qd-drawpad-strokes';
+const DRAWPAD_IMAGE_KEY = 'qd-drawpad-image';
+
+let drawpadZoom = 1;
+let drawpadPanX = 0;
+let drawpadPanY = 0;
+let drawpadDpr = 1;
+let drawpadViewportWidth = 0;
+let drawpadViewportHeight = 0;
+let drawpadInitialized = false;
+let drawpadResizeObserver = null;
+let drawpadTool = 'brush';
+let drawpadStrokes = [];
+let drawpadHistory = [];
+let drawpadCurrentStroke = null;
+let drawpadPanState = null;
+let drawpadSpaceDown = false;
+let drawpadSaveTimer = null;
+let drawpadSavedImage = null;
+
+function drawpadSetActiveTool(tool){
+  drawpadTool = tool;
+  drawpadPencilBtn.classList.toggle('primary', tool === 'brush');
+  drawpadPencilBtn.classList.toggle('ghost', tool !== 'brush');
+  drawpadEraserBtn.classList.toggle('primary', tool === 'eraser');
+  drawpadEraserBtn.classList.toggle('ghost', tool !== 'eraser');
+}
+
+function drawpadUpdateZoomLabel(){
+  drawpadZoomValueEl.textContent = Math.round(drawpadZoom * 100) + '%';
+}
+
+function drawpadDrawStrokes(ctx){
+  const strokes = drawpadCurrentStroke ? [...drawpadStrokes, drawpadCurrentStroke] : drawpadStrokes;
+  strokes.forEach(stroke => {
+    if(!stroke.points.length) return;
+    ctx.save();
+    ctx.globalCompositeOperation = stroke.tool === 'eraser' ? 'destination-out' : 'source-over';
+    ctx.strokeStyle = stroke.color;
+    ctx.lineWidth = stroke.width;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    ctx.moveTo(stroke.points[0].x, stroke.points[0].y);
+    stroke.points.slice(1).forEach(point => ctx.lineTo(point.x, point.y));
+    ctx.stroke();
+    if(stroke.points.length === 1){
+      ctx.beginPath();
+      ctx.arc(stroke.points[0].x, stroke.points[0].y, stroke.width / 2, 0, Math.PI * 2);
+      ctx.fillStyle = stroke.tool === 'eraser' ? '#000' : stroke.color;
+      ctx.fill();
+    }
+    ctx.restore();
+  });
+}
+
+function drawpadRender(){
+  if(!drawpadCanvas.width || !drawpadCanvas.height) return;
+  drawpadCtx.setTransform(1, 0, 0, 1, 0, 0);
+  drawpadCtx.clearRect(0, 0, drawpadCanvas.width, drawpadCanvas.height);
+  drawpadCtx.setTransform(
+    drawpadDpr * drawpadZoom, 0, 0, drawpadDpr * drawpadZoom,
+    drawpadDpr * drawpadPanX, drawpadDpr * drawpadPanY
+  );
+  if(drawpadSavedImage && drawpadSavedImage.complete){
+    drawpadCtx.drawImage(drawpadSavedImage, 0, 0, DRAWPAD_SIZE, DRAWPAD_SIZE);
+  }
+  drawpadDrawStrokes(drawpadCtx);
+}
+
+function drawpadResize(){
+  const rect = drawpadViewport.getBoundingClientRect();
+  if(rect.width <= 0 || rect.height <= 0) return;
+  const centerX = drawpadViewportWidth ? (drawpadViewportWidth / 2 - drawpadPanX) / drawpadZoom : DRAWPAD_SIZE / 2;
+  const centerY = drawpadViewportHeight ? (drawpadViewportHeight / 2 - drawpadPanY) / drawpadZoom : DRAWPAD_SIZE / 2;
+  drawpadViewportWidth = rect.width;
+  drawpadViewportHeight = rect.height;
+  drawpadDpr = Math.min(window.devicePixelRatio || 1, 2);
+  drawpadCanvas.width = Math.floor(rect.width * drawpadDpr);
+  drawpadCanvas.height = Math.floor(rect.height * drawpadDpr);
+  drawpadPanX = rect.width / 2 - centerX * drawpadZoom;
+  drawpadPanY = rect.height / 2 - centerY * drawpadZoom;
+  drawpadRender();
+}
+
+function drawpadPoint(event){
+  const rect = drawpadCanvas.getBoundingClientRect();
+  return {
+    x: (event.clientX - rect.left - drawpadPanX) / drawpadZoom,
+    y: (event.clientY - rect.top - drawpadPanY) / drawpadZoom
+  };
+}
+
+function drawpadZoomAt(factor, clientX, clientY){
+  const rect = drawpadCanvas.getBoundingClientRect();
+  const localX = clientX - rect.left;
+  const localY = clientY - rect.top;
+  const oldZoom = drawpadZoom;
+  drawpadZoom = Math.min(4, Math.max(.1, drawpadZoom * factor));
+  const virtualX = (localX - drawpadPanX) / oldZoom;
+  const virtualY = (localY - drawpadPanY) / oldZoom;
+  drawpadPanX = localX - virtualX * drawpadZoom;
+  drawpadPanY = localY - virtualY * drawpadZoom;
+  drawpadUpdateZoomLabel();
+  drawpadRender();
+}
+
+function drawpadResetView(){
+  drawpadZoom = 1;
+  drawpadPanX = drawpadViewportWidth / 2 - DRAWPAD_SIZE / 2;
+  drawpadPanY = drawpadViewportHeight / 2 - DRAWPAD_SIZE / 2;
+  drawpadUpdateZoomLabel();
+  drawpadRender();
+}
+
+function drawpadPushHistory(){
+  drawpadHistory.push(drawpadStrokes.map(stroke => ({
+    tool: stroke.tool,
+    color: stroke.color,
+    width: stroke.width,
+    points: stroke.points.map(point => ({ x: point.x, y: point.y }))
+  })));
+  if(drawpadHistory.length > 20) drawpadHistory.shift();
+}
+
+function drawpadRenderExport(ctx){
+  ctx.clearRect(0, 0, DRAWPAD_SIZE, DRAWPAD_SIZE);
+  if(drawpadSavedImage && drawpadSavedImage.complete){
+    ctx.drawImage(drawpadSavedImage, 0, 0, DRAWPAD_SIZE, DRAWPAD_SIZE);
+  }
+  drawpadDrawStrokes(ctx);
+}
+
+function drawpadSave(){
+  clearTimeout(drawpadSaveTimer);
+  drawpadSaveTimer = setTimeout(() => {
+    const exportCanvas = document.createElement('canvas');
+    exportCanvas.width = DRAWPAD_SIZE;
+    exportCanvas.height = DRAWPAD_SIZE;
+    const exportCtx = exportCanvas.getContext('2d');
+    drawpadRenderExport(exportCtx);
+    try{
+      localStorage.setItem(DRAWPAD_STROKES_KEY, JSON.stringify(drawpadStrokes));
+      localStorage.setItem(DRAWPAD_IMAGE_KEY, exportCanvas.toDataURL('image/png'));
+    }catch(error){
+      console.warn('Could not save the Drawpad image locally:', error);
+    }
+  }, 250);
+}
+
+function drawpadLoad(){
+  try{
+    const savedStrokes = localStorage.getItem(DRAWPAD_STROKES_KEY);
+    drawpadStrokes = savedStrokes ? JSON.parse(savedStrokes) : [];
+  }catch(error){
+    drawpadStrokes = [];
+  }
+  if(drawpadStrokes.length) return;
+  const savedImage = localStorage.getItem(DRAWPAD_IMAGE_KEY);
+  if(!savedImage) return;
+  drawpadSavedImage = new Image();
+  drawpadSavedImage.onload = drawpadRender;
+  drawpadSavedImage.src = savedImage;
+}
+
+function drawpadFinishStroke(){
+  if(!drawpadCurrentStroke) return;
+  drawpadStrokes.push(drawpadCurrentStroke);
+  drawpadCurrentStroke = null;
+  drawpadRender();
+  drawpadSave();
+}
+
+function drawpadPointerDown(event){
+  if(event.button === 1 || drawpadSpaceDown){
+    event.preventDefault();
+    drawpadPanState = { x: event.clientX, y: event.clientY, panX: drawpadPanX, panY: drawpadPanY };
+    drawpadCanvas.classList.add('panning');
+    drawpadCanvas.setPointerCapture(event.pointerId);
+    return;
+  }
+  if(event.button !== 0) return;
+  event.preventDefault();
+  drawpadPushHistory();
+  drawpadCurrentStroke = {
+    tool: drawpadTool,
+    color: drawpadColorEl.value,
+    width: Number(drawpadSizeEl.value),
+    points: [drawpadPoint(event)]
+  };
+  drawpadCanvas.setPointerCapture(event.pointerId);
+  drawpadRender();
+}
+
+function drawpadPointerMove(event){
+  if(drawpadPanState){
+    drawpadPanX = drawpadPanState.panX + event.clientX - drawpadPanState.x;
+    drawpadPanY = drawpadPanState.panY + event.clientY - drawpadPanState.y;
+    drawpadRender();
+    return;
+  }
+  if(!drawpadCurrentStroke) return;
+  const point = drawpadPoint(event);
+  const previous = drawpadCurrentStroke.points[drawpadCurrentStroke.points.length - 1];
+  if(Math.hypot(point.x - previous.x, point.y - previous.y) >= .5){
+    drawpadCurrentStroke.points.push(point);
+    drawpadRender();
+  }
+}
+
+function drawpadPointerUp(event){
+  if(drawpadPanState){
+    drawpadPanState = null;
+    drawpadCanvas.classList.remove('panning');
+    return;
+  }
+  if(drawpadCurrentStroke) drawpadFinishStroke();
+}
+
+function drawpadUndo(){
+  if(!drawpadHistory.length) return;
+  drawpadStrokes = drawpadHistory.pop();
+  drawpadSavedImage = null;
+  drawpadRender();
+  drawpadSave();
+}
+
+function drawpadClear(){
+  if(!drawpadStrokes.length && !drawpadSavedImage) return;
+  if(!confirm('Clear the entire drawing?')) return;
+  drawpadPushHistory();
+  drawpadStrokes = [];
+  drawpadSavedImage = null;
+  drawpadRender();
+  drawpadSave();
+}
+
+function drawpadResetCanvas(){
+  if(!drawpadStrokes.length && !drawpadSavedImage) return;
+  if(!confirm('Reset the canvas and permanently remove the drawing?')) return;
+  drawpadStrokes = [];
+  drawpadHistory = [];
+  drawpadCurrentStroke = null;
+  drawpadSavedImage = null;
+  clearTimeout(drawpadSaveTimer);
+  localStorage.removeItem(DRAWPAD_STROKES_KEY);
+  localStorage.removeItem(DRAWPAD_IMAGE_KEY);
+  drawpadRender();
+}
+
+function drawpadExport(){
+  const exportCanvas = document.createElement('canvas');
+  exportCanvas.width = DRAWPAD_SIZE;
+  exportCanvas.height = DRAWPAD_SIZE;
+  drawpadRenderExport(exportCanvas.getContext('2d'));
+  const link = document.createElement('a');
+  link.download = 'quiet-desk-drawing.png';
+  link.href = exportCanvas.toDataURL('image/png');
+  link.click();
+}
+
+function initDrawpad(){
+  if(drawpadInitialized){ drawpadResize(); return; }
+  drawpadInitialized = true;
+  drawpadSetActiveTool('brush');
+  drawpadSizeValueEl.textContent = drawpadSizeEl.value + ' px';
+  drawpadLoad();
+  drawpadResizeObserver = new ResizeObserver(drawpadResize);
+  drawpadResizeObserver.observe(drawpadViewport);
+  drawpadResize();
+  drawpadCanvas.addEventListener('pointerdown', drawpadPointerDown);
+  drawpadCanvas.addEventListener('pointermove', drawpadPointerMove);
+  drawpadCanvas.addEventListener('pointerup', drawpadPointerUp);
+  drawpadCanvas.addEventListener('pointercancel', drawpadPointerUp);
+  drawpadCanvas.addEventListener('contextmenu', event => event.preventDefault());
+  drawpadCanvas.addEventListener('wheel', event => {
+    if(!event.ctrlKey) return;
+    event.preventDefault();
+    drawpadZoomAt(event.deltaY < 0 ? 1.1 : .9, event.clientX, event.clientY);
+  }, { passive:false });
+  drawpadPencilBtn.addEventListener('click', () => drawpadSetActiveTool('brush'));
+  drawpadEraserBtn.addEventListener('click', () => drawpadSetActiveTool('eraser'));
+  drawpadSizeEl.addEventListener('input', () => { drawpadSizeValueEl.textContent = drawpadSizeEl.value + ' px'; });
+  drawpadUndoBtn.addEventListener('click', drawpadUndo);
+  drawpadClearBtn.addEventListener('click', drawpadClear);
+  drawpadResetCanvasBtn.addEventListener('click', drawpadResetCanvas);
+  drawpadZoomOutBtn.addEventListener('click', () => drawpadZoomAt(.8, drawpadViewportWidth / 2 + drawpadViewport.getBoundingClientRect().left, drawpadViewportHeight / 2 + drawpadViewport.getBoundingClientRect().top));
+  drawpadZoomInBtn.addEventListener('click', () => drawpadZoomAt(1.25, drawpadViewportWidth / 2 + drawpadViewport.getBoundingClientRect().left, drawpadViewportHeight / 2 + drawpadViewport.getBoundingClientRect().top));
+  drawpadResetBtn.addEventListener('click', drawpadResetView);
+  drawpadExportBtn.addEventListener('click', drawpadExport);
+  window.addEventListener('keydown', event => {
+    if(event.code === 'Space' && document.querySelector('#panel-drawpad.active')){
+      drawpadSpaceDown = true;
+      drawpadCanvas.classList.add('panning');
+      event.preventDefault();
+    }
+  });
+  window.addEventListener('keyup', event => {
+    if(event.code === 'Space'){
+      drawpadSpaceDown = false;
+      if(!drawpadPanState) drawpadCanvas.classList.remove('panning');
+    }
+  });
+  drawpadUpdateZoomLabel();
+}
 
 /* ---------- Restore last tab ---------- */
 activateTab(localStorage.getItem('qd-last-tab') || 'notepad');
