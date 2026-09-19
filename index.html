@@ -132,6 +132,15 @@
   #panel-notepad.active{ max-width:none; } /* the bento layout needs the full window width */
   .panel h2{ font-size:22px; margin:0 0 4px 0; font-weight:600; }
   .subtext{ color:var(--text-dim); font-size:13.5px; margin:0 0 26px 0; }
+  #panel-click.active{
+    max-width:none;
+    min-height:calc(100vh - 80px);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+  }
   .shared-warning{
     background:#4a2f13; border:1px solid var(--accent); color:#f0c98a;
     font-size:12.5px; line-height:1.5; border-radius:8px; padding:9px 12px;
@@ -284,7 +293,7 @@
   button.btn:disabled:hover{ background:var(--surface-2); border-color:var(--border); color:var(--text); }
 
   /* Click Break */
-  .click-wrap{ display:flex; flex-direction:column; align-items:flex-start; gap:22px; }
+  .click-wrap{ display:flex; flex-direction:column; align-items:center; gap:22px; }
   #click-btn{
     all:unset; cursor:pointer;
     width:180px; height:180px; border-radius:50%;
@@ -296,7 +305,26 @@
     transition:transform .08s ease, background .15s ease;
   }
   #click-btn:active{ transform:scale(.94); background:var(--surface-2); }
-  .stats-row{ display:flex; gap:36px; }
+  .click-image{
+    display:none;
+    position:fixed;
+    z-index:20;
+    width:180px;
+    height:180px;
+    object-fit:contain;
+    border-radius:12px;
+    pointer-events:none;
+    transform:scale(.25);
+    opacity:0;
+  }
+  .click-image.pop{
+    animation:click-image-pop .4s cubic-bezier(.2,.8,.3,1) forwards;
+  }
+  @keyframes click-image-pop{
+    0%{ opacity:0; transform:scale(.25) rotate(-8deg); }
+    65%{ opacity:1; transform:scale(1.08) rotate(3deg); }
+    100%{ opacity:1; transform:scale(1) rotate(0deg); }
+  }
   .stat-label{ font-size:12px; color:var(--text-dim); margin-bottom:4px; }
   .stat-value{ font-family:'Space Grotesk',sans-serif; font-size:26px; font-weight:600; }
 
@@ -568,19 +596,10 @@
   <!-- Click Break -->
   <section class="panel" id="panel-click">
     <h2>Click break</h2>
-    <p class="subtext">A small button that does nothing but count. Sometimes that's enough.</p>
+    <p class="subtext">Click the button to reveal a random surprise.</p>
     <div class="click-wrap">
       <button id="click-btn">Click</button>
-      <div class="stats-row">
-        <div>
-          <div class="stat-label">This session</div>
-          <div class="stat-value" id="click-session">0</div>
-        </div>
-        <div>
-          <div class="stat-label">All time</div>
-          <div class="stat-value" id="click-total">0</div>
-        </div>
-      </div>
+      <img class="click-image" id="click-image" alt="Random surprise">
     </div>
   </section>
 
@@ -1377,18 +1396,45 @@ renderTasks();
 
 /* ---------- Click break ---------- */
 const clickBtn = document.getElementById('click-btn');
-const clickSessionEl = document.getElementById('click-session');
-const clickTotalEl = document.getElementById('click-total');
-let sessionClicks = 0;
-let totalClicks = parseInt(localStorage.getItem('qd-click-total') || '0', 10);
-clickTotalEl.textContent = totalClicks;
+const clickImageEl = document.getElementById('click-image');
+const clickImages = [
+  '2_webp__512_512_-removebg-preview.png',
+  '37_Стикер_телеграм___из_набора__ам_няма_-removebg-preview.png',
+  '52ca5d37d0608f4b4ca2b0334fe6170f-removebg-preview.png',
+  'download-removebg-preview.png',
+  'download__1_-removebg-preview.png',
+  'download__2_-removebg-preview (1).png',
+  'download__2_-removebg-preview.png',
+  'download__3_-removebg-preview.png',
+  'download__4_-removebg-preview.png',
+  'download__5_-removebg-preview (1).png',
+  'download__5_-removebg-preview.png',
+  'Ha__cute_-removebg-preview.png',
+  'Om_Nom_Stories-removebg-preview.png',
+  'амням-removebg-preview.png',
+  'амнямм-removebg-preview.png',
+  'Видео_Самая_прикольная_анимационная_открытка_для_взрослых_про_лето____OK_RU-removebg-preview.png'
+];
+let lastClickImageIndex = -1;
 
 clickBtn.addEventListener('click', () => {
-  sessionClicks++;
-  totalClicks++;
-  clickSessionEl.textContent = sessionClicks;
-  clickTotalEl.textContent = totalClicks;
-  localStorage.setItem('qd-click-total', String(totalClicks));
+  let imageIndex;
+  do imageIndex = Math.floor(Math.random() * clickImages.length);
+  while(clickImages.length > 1 && imageIndex === lastClickImageIndex);
+  lastClickImageIndex = imageIndex;
+
+  const imageSize = 180;
+  const sidebarRight = document.querySelector('.sidebar').getBoundingClientRect().right;
+  const minLeft = Math.min(sidebarRight + 20, window.innerWidth - imageSize - 20);
+  const maxLeft = Math.max(minLeft, window.innerWidth - imageSize - 20);
+  const maxTop = Math.max(20, window.innerHeight - imageSize - 20);
+  clickImageEl.style.left = Math.round(minLeft + Math.random() * (maxLeft - minLeft)) + 'px';
+  clickImageEl.style.top = Math.round(20 + Math.random() * (maxTop - 20)) + 'px';
+  clickImageEl.src = 'Source-bgrmv/' + encodeURIComponent(clickImages[imageIndex]);
+  clickImageEl.style.display = 'block';
+  clickImageEl.classList.remove('pop');
+  void clickImageEl.offsetWidth;
+  clickImageEl.classList.add('pop');
 });
 
 /* ---------- Whack-a-mole ---------- */
