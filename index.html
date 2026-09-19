@@ -915,8 +915,8 @@ function openNoteReader(note){
   if(!reader) return;
   const title = noteTitle(note);
   const safeTitle = title.replace(/[&<>"']/g, char => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[char]));
-  const body = replaceImageTokensHtml(linkifyNoteHtml(sanitizeNoteHtml(note.text)), note.images || {});
-  reader.document.write(`<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>${safeTitle}</title><style>body{margin:0;padding:clamp(28px,8vw,100px);background:#1B2430;color:#EDEEF0;font-family:Inter,'Segoe UI',sans-serif;line-height:1.75}main{max-width:820px;margin:0 auto}h1{font-family:'Space Grotesk','Segoe UI',sans-serif;font-size:clamp(26px,4vw,42px);line-height:1.2;margin:0 0 28px;color:#E8A33D}article{font-size:18px;white-space:pre-wrap}.note-inline-image{max-width:280px;max-height:280px;margin:6px 8px 6px 0;border-radius:10px;vertical-align:middle;cursor:pointer}mark{padding:1px 3px;border-radius:3px}mark[data-hl="yellow"]{background:rgba(255,235,59,.35)}mark[data-hl="green"]{background:rgba(76,175,80,.4)}mark[data-hl="pink"]{background:rgba(240,98,146,.4)}mark[data-hl="blue"]{background:rgba(41,182,246,.4)}</style></head><body><main><h1>${safeTitle}</h1><article>${body}</article></main></body></html>`);
+  const body = replaceImageTokensHtml(linkifyNoteHtml(sanitizeNoteHtml(note.text)), note.images || {}, 'reader-image');
+  reader.document.write(`<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>${safeTitle}</title><style>body{margin:0;padding:clamp(28px,8vw,100px);background:#1B2430;color:#EDEEF0;font-family:Inter,'Segoe UI',sans-serif;line-height:1.75}main{max-width:820px;margin:0 auto}h1{font-family:'Space Grotesk','Segoe UI',sans-serif;font-size:clamp(26px,4vw,42px);line-height:1.2;margin:0 0 28px;color:#E8A33D}article{font-size:18px;white-space:pre-wrap}.reader-image{max-width:100%;width:auto;height:auto;max-height:80vh;margin:12px 0;border-radius:10px;display:block;cursor:pointer}mark{padding:1px 3px;border-radius:3px}mark[data-hl="yellow"]{background:rgba(255,235,59,.35)}mark[data-hl="green"]{background:rgba(76,175,80,.4)}mark[data-hl="pink"]{background:rgba(240,98,146,.4)}mark[data-hl="blue"]{background:rgba(41,182,246,.4)}</style></head><body><main><h1>${safeTitle}</h1><article>${body}</article></main></body></html>`);
   reader.document.close();
 }
 
@@ -925,11 +925,11 @@ function downloadNote(note){
   downloadTxt(`${title}\n\n${toPlainText(note.text)}`, title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'note');
 }
 
-function replaceImageTokensHtml(html, images){
+function replaceImageTokensHtml(html, images, imageClass = 'note-inline-image'){
   return html.replace(/\[image:\d+\]/g, token => {
     const src = images && images[token.slice(1, -1)];
     if(!src) return token;
-    return `<img class="note-inline-image" src="${src}" alt="Attached image" onclick="window.open(this.src,'_blank')">`;
+    return `<img class="${imageClass}" src="${src}" alt="Attached image" onclick="window.open(this.src,'_blank')">`;
   });
 }
 
