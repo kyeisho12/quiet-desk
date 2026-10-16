@@ -168,6 +168,7 @@
   .clock-zone label,.alarm-label{ display:block; margin-bottom:6px; color:var(--text-dim); font-size:11px; font-weight:600; letter-spacing:.35px; text-transform:uppercase; }
   .clock-zone select,.alarm-form input[type="time"],.alarm-form input[type="text"]{ width:100%; background:var(--surface); border:1px solid var(--border); border-radius:7px; color:var(--text); font:13px 'Inter',sans-serif; padding:8px 9px; outline:none; }
   .clock-zone select:focus,.alarm-form input:focus{ border-color:var(--accent); }
+  .clock-format{ margin-top:10px; }
   .alarm-list{ display:flex; flex-direction:column; gap:5px; margin-top:14px; }
   .alarm-row{ display:flex; align-items:center; gap:8px; padding:7px 8px; border-left:2px solid var(--accent); background:rgba(232,163,61,.08); border-radius:0 6px 6px 0; }
   .alarm-row-time{ color:var(--accent); font-size:13px; font-weight:600; white-space:nowrap; }
@@ -711,6 +712,13 @@
             <option value="America/New_York">Eastern</option>
             <option value="Asia/Manila">Philippines</option>
             <option value="UTC">UTC</option>
+          </select>
+        </div>
+        <div class="clock-zone clock-format">
+          <label for="clock-format-select">Clock format</label>
+          <select id="clock-format-select">
+            <option value="12">12-hour</option>
+            <option value="24">24-hour</option>
           </select>
         </div>
         <div class="alarm-list" id="alarm-list"></div>
@@ -1830,6 +1838,7 @@ startBlastGame();
 const clockTimeEl = document.getElementById('clock-time');
 const clockDateEl = document.getElementById('clock-date');
 const clockZoneEl = document.getElementById('clock-zone-select');
+const clockFormatEl = document.getElementById('clock-format-select');
 const alarmListEl = document.getElementById('alarm-list');
 const alarmTimeEl = document.getElementById('alarm-time');
 const alarmReminderEl = document.getElementById('alarm-reminder');
@@ -1842,6 +1851,7 @@ const clockAlertEl = document.getElementById('clock-alert');
 const clockAlertTextEl = document.getElementById('clock-alert-text');
 const clockAlertDismissBtn = document.getElementById('clock-alert-dismiss');
 const CLOCK_ZONE_KEY = 'qd-clock-zone';
+const CLOCK_FORMAT_KEY = 'qd-clock-format';
 const CLOCK_ALARMS_KEY = 'qd-clock-alarms';
 const CLOCK_LEGACY_ALARM_KEY = 'qd-clock-alarm';
 const CLOCK_LAST_ALARM_KEY = 'qd-clock-last-alarm';
@@ -1860,7 +1870,8 @@ function clockParts(timeZone){
 }
 function updateClock(){
   const timeZone = selectedClockTimeZone();
-  clockTimeEl.textContent = new Intl.DateTimeFormat('en-US', { timeZone, hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:false }).format(new Date());
+  const hour12 = clockFormatEl.value === '12';
+  clockTimeEl.textContent = new Intl.DateTimeFormat('en-US', { timeZone, hour:'2-digit', minute:'2-digit', second:'2-digit', hour12 }).format(new Date());
   clockDateEl.textContent = new Intl.DateTimeFormat('en-US', { timeZone, weekday:'long', month:'short', day:'numeric', year:'numeric', timeZoneName:'short' }).format(new Date());
   checkClockAlarm(timeZone);
 }
@@ -1946,7 +1957,9 @@ function checkClockAlarm(timeZone){
   });
 }
 clockZoneEl.value = localStorage.getItem(CLOCK_ZONE_KEY) || 'local';
+clockFormatEl.value = localStorage.getItem(CLOCK_FORMAT_KEY) || '12';
 clockZoneEl.addEventListener('change', () => { localStorage.setItem(CLOCK_ZONE_KEY, clockZoneEl.value); updateClock(); });
+clockFormatEl.addEventListener('change', () => { localStorage.setItem(CLOCK_FORMAT_KEY, clockFormatEl.value); updateClock(); });
 alarmSaveBtn.addEventListener('click', () => {
   if(!alarmTimeEl.value){ setAlarmStatus('Choose a time first.'); return; }
   const alarm = { id:Date.now(), time:alarmTimeEl.value, reminder:alarmReminderEl.value.trim(), sound:alarmSoundEl.checked, zone:clockZoneEl.value, zoneLabel:clockZoneLabel() };
