@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root{
     --bg:#1B2430; --surface:#232D3B; --surface-2:#2A3547; --surface-3:#324056;
@@ -34,6 +35,7 @@
   .chat-meta{display:flex;align-items:center;gap:9px;color:var(--text-dim);font-size:11px;}
   .connection{display:flex;align-items:center;gap:6px;}
   .connection::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--accent-2);}
+  .connection.offline::before{background:var(--danger);}
   .messages{flex:1;min-height:260px;padding:18px 14px;overflow:auto;}
   .message{display:flex;gap:9px;max-width:88%;margin-bottom:16px;}
   .message.mine{margin-left:auto;flex-direction:row-reverse;}
@@ -46,6 +48,13 @@
   .message-time{color:var(--text-dim);font-size:10px;}
   .message-bubble{padding:9px 11px;border-radius:9px;background:var(--surface-2);font-size:13px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere;}
   .message.mine .message-bubble{background:rgba(232,163,61,.16);border:1px solid rgba(232,163,61,.28);}
+  .message-actions{display:flex;gap:6px;margin-top:5px;}
+  .message.mine .message-actions{justify-content:flex-end;}
+  .message-action{border:0;padding:0;background:none;color:var(--text-dim);font:10px 'Inter',sans-serif;cursor:pointer;}
+  .message-action:hover{color:var(--accent);}
+  .message-edit{width:100%;min-height:58px;resize:vertical;background:var(--surface);border:1px solid var(--accent);border-radius:7px;color:var(--text);font:13px/1.5 'Inter',sans-serif;padding:8px;outline:none;}
+  .message-edit-actions{display:flex;gap:6px;margin-top:6px;}
+  .chat-status{min-height:17px;padding:0 12px 8px;color:var(--text-dim);font-size:11px;}
   .chat-form{display:flex;gap:8px;padding:12px;border-top:1px solid var(--border);}
   .chat-form textarea{flex:1;min-height:42px;max-height:130px;resize:vertical;background:var(--surface);border:1px solid var(--border);border-radius:7px;color:var(--text);font:13px/1.4 'Inter',sans-serif;padding:9px;outline:none;}
   .chat-form textarea:focus{border-color:var(--accent);}
@@ -98,9 +107,9 @@
     <section class="chat-panel" aria-label="Team conference chat">
       <div class="chat-header">
         <h2>General discussion</h2>
-        <div class="chat-meta"><span>4 members</span><span class="connection">Demo chat</span></div>
+        <div class="chat-meta"><span>Shared room</span><span class="connection" id="connection-status">Connecting</span></div>
       </div>
-      <div class="messages" id="messages" aria-live="polite"></div>
+      <div class="messages" id="messages" aria-live="polite"><p class="chat-status">Loading recent messages...</p></div>
       <form class="chat-form" id="chat-form">
         <textarea id="chat-input" placeholder="Write a message to the group..." aria-label="Write a message" rows="1"></textarea>
         <button class="btn primary" id="send-button" type="submit">Send</button>
@@ -115,84 +124,163 @@
         <div class="member"><span class="member-avatar">JR</span><span class="member-info"><span class="member-name">Jordan R.</span><span class="member-role">Member</span></span></div>
         <div class="member"><span class="member-avatar">TK</span><span class="member-info"><span class="member-name">Taylor K.</span><span class="member-role">Member</span></span></div>
       </div>
-      <div class="conference-note">Messages are saved in this browser for now. Account and shared real-time messaging can be connected in the next step.</div>
+      <div class="conference-note">Messages are shared with everyone in this room. You can edit or delete your own messages.</div>
     </aside>
   </div>
 </main>
 <script>
+const SUPABASE_URL = 'https://owbxunszjwsaozchjmei.supabase.co';
+const SUPABASE_ANON_KEY = '******';
+const sb = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 const form = document.getElementById('chat-form');
 const input = document.getElementById('chat-input');
 const messages = document.getElementById('messages');
 const sendButton = document.getElementById('send-button');
-const username = (localStorage.getItem('qd-username') || '').trim() || 'Guest';
-const STORAGE_KEY = `quiet-desk-conference-messages:${username.toLowerCase()}`;
-const starterMessages = [
-  { author:'Alyssa S.', initials:'AS', time:'9:12 AM', text:'Good morning everyone. Let’s use this room for today’s updates and questions.' },
-  { author:'Jordan R.', initials:'JR', time:'9:16 AM', text:'Morning! I’m reviewing the open items now and will share an update shortly.' },
-  { author:'Taylor K.', initials:'TK', time:'9:20 AM', text:'Sounds good. I’ll keep an eye on the notes and help where I can.' }
-];
+const connectionStatus = document.getElementById('connection-status');
+const username = (localStorage.getItem('qd-username') || '').trim();
+const ROOM_KEY = 'general';
+const HISTORY_LIMIT = 100;
+let account = null;
+let chatMessages = [];
+let realtimeChannel = null;
 
-function getMessages(){
-  try{
-    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
-    return Array.isArray(saved) ? saved : starterMessages;
-  }catch(error){
-    console.warn('Unable to load saved conference messages.', error);
-    return starterMessages;
-  }
+function setConnectionStatus(text, offline = false){
+  connectionStatus.textContent = text;
+  connectionStatus.classList.toggle('offline', offline);
 }
-function saveMessages(items){
-  try{
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
-  }catch(error){
-    console.warn('Unable to save conference message.', error);
-  }
+function initialsFor(name){ return name.slice(0, 2).toUpperCase(); }
+function formatMessageTime(value){ return new Date(value).toLocaleTimeString([], { hour:'numeric', minute:'2-digit' }); }
+function setStatus(text){
+  messages.replaceChildren();
+  const status = document.createElement('p');
+  status.className = 'chat-status';
+  status.textContent = text;
+  messages.appendChild(status);
 }
 function renderMessage(message){
+  const mine = account && message.account_id === account.id;
   const item = document.createElement('article');
-  item.className = `message${message.mine ? ' mine' : ''}`;
+  item.className = `message${mine ? ' mine' : ''}`;
+  item.dataset.messageId = message.id;
   const avatar = document.createElement('div');
   avatar.className = 'avatar';
-  avatar.textContent = message.initials;
+  avatar.textContent = initialsFor(message.author_username);
   const content = document.createElement('div');
   content.className = 'message-content';
   const heading = document.createElement('div');
   heading.className = 'message-heading';
   const author = document.createElement('span');
   author.className = 'message-author';
-  author.textContent = message.author;
+  author.textContent = message.author_username;
   const time = document.createElement('time');
   time.className = 'message-time';
-  time.textContent = message.time;
+  time.textContent = formatMessageTime(message.created_at);
   const bubble = document.createElement('div');
   bubble.className = 'message-bubble';
-  bubble.textContent = message.text;
+  bubble.textContent = message.body;
   heading.append(author, time);
   content.append(heading, bubble);
+  if(mine){
+    const actions = document.createElement('div');
+    actions.className = 'message-actions';
+    [['Edit', () => beginEdit(message, item)], ['Delete', () => deleteMessage(message)]].forEach(([label, handler]) => {
+      const button = document.createElement('button');
+      button.className = 'message-action';
+      button.type = 'button';
+      button.textContent = label;
+      button.addEventListener('click', handler);
+      actions.appendChild(button);
+    });
+    content.appendChild(actions);
+  }
   item.append(avatar, content);
   messages.appendChild(item);
 }
-function renderMessages(items){
+function renderMessages(scrollToBottom = false){
   messages.replaceChildren();
-  items.forEach(renderMessage);
-  messages.scrollTop = messages.scrollHeight;
+  chatMessages.forEach(renderMessage);
+  if(scrollToBottom) messages.scrollTop = messages.scrollHeight;
 }
-function currentTime(){
-  return new Date().toLocaleTimeString([], { hour:'numeric', minute:'2-digit' });
+function upsertMessage(message){
+  const index = chatMessages.findIndex(item => item.id === message.id);
+  if(index === -1) chatMessages.push(message);
+  else chatMessages[index] = message;
+  chatMessages.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+  renderMessages(index === -1);
 }
-
-let chatMessages = getMessages();
-renderMessages(chatMessages);
-form.addEventListener('submit', event => {
+function removeMessage(id){
+  chatMessages = chatMessages.filter(message => message.id !== id);
+  renderMessages();
+}
+function beginEdit(message, item){
+  const content = item.querySelector('.message-content');
+  content.replaceChildren();
+  const editor = document.createElement('textarea');
+  editor.className = 'message-edit';
+  editor.value = message.body;
+  const actions = document.createElement('div');
+  actions.className = 'message-edit-actions';
+  const save = document.createElement('button');
+  save.className = 'btn primary';
+  save.type = 'button';
+  save.textContent = 'Save';
+  const cancel = document.createElement('button');
+  cancel.className = 'btn';
+  cancel.type = 'button';
+  cancel.textContent = 'Cancel';
+  save.addEventListener('click', async () => {
+    const body = editor.value.trim();
+    if(!body){ editor.focus(); return; }
+    save.disabled = true;
+    const result = await sb.from('chat_messages').update({ body, updated_at:new Date().toISOString() }).eq('id', message.id).eq('account_id', account.id).select('*').single();
+    if(result.error){ console.error('Could not edit chat message:', result.error); save.disabled = false; return; }
+    upsertMessage(result.data);
+  });
+  cancel.addEventListener('click', () => renderMessages());
+  actions.append(save, cancel);
+  content.append(editor, actions);
+  editor.focus();
+}
+async function deleteMessage(message){
+  if(!confirm('Delete this message?')) return;
+  const result = await sb.from('chat_messages').delete().eq('id', message.id).eq('account_id', account.id);
+  if(result.error) console.error('Could not delete chat message:', result.error);
+}
+async function loadAccount(){
+  if(!username){ throw new Error('Log in on the Call page before opening chat.'); }
+  if(!sb) throw new Error('Chat service is unavailable.');
+  const result = await sb.from('accounts').select('id, username').ilike('username', username).maybeSingle();
+  if(result.error) throw result.error;
+  if(!result.data) throw new Error('Your account could not be found. Log in again on the Call page.');
+  account = result.data;
+}
+async function loadMessages(){
+  const result = await sb.from('chat_messages').select('*').eq('room_key', ROOM_KEY).order('created_at', { ascending:false }).limit(HISTORY_LIMIT);
+  if(result.error) throw result.error;
+  chatMessages = (result.data || []).reverse();
+  renderMessages(true);
+}
+function subscribeToMessages(){
+  realtimeChannel = sb.channel('quiet-desk-general-chat')
+    .on('postgres_changes', { event:'INSERT', schema:'public', table:'chat_messages', filter:`room_key=eq.${ROOM_KEY}` }, payload => upsertMessage(payload.new))
+    .on('postgres_changes', { event:'UPDATE', schema:'public', table:'chat_messages', filter:`room_key=eq.${ROOM_KEY}` }, payload => upsertMessage(payload.new))
+    .on('postgres_changes', { event:'DELETE', schema:'public', table:'chat_messages', filter:`room_key=eq.${ROOM_KEY}` }, payload => removeMessage(payload.old.id))
+    .subscribe(status => {
+      if(status === 'SUBSCRIBED') setConnectionStatus('Live');
+      if(status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') setConnectionStatus('Offline', true);
+    });
+}
+form.addEventListener('submit', async event => {
   event.preventDefault();
-  const text = input.value.trim();
-  if(!text) return;
-  const message = { author:username, initials:username.slice(0, 2).toUpperCase(), time:currentTime(), text, mine:true };
-  chatMessages = [...chatMessages, message];
-  saveMessages(chatMessages);
-  renderMessages(chatMessages);
+  const body = input.value.trim();
+  if(!body || !account || !sb) return;
+  sendButton.disabled = true;
+  const result = await sb.from('chat_messages').insert({ room_key:ROOM_KEY, account_id:account.id, author_username:account.username, body }).select('*').single();
+  sendButton.disabled = false;
+  if(result.error){ console.error('Could not send chat message:', result.error); return; }
   input.value = '';
   input.focus();
+  upsertMessage(result.data);
 });
 input.addEventListener('keydown', event => {
   if(event.key === 'Enter' && !event.shiftKey){
@@ -200,6 +288,18 @@ input.addEventListener('keydown', event => {
     if(!sendButton.disabled) form.requestSubmit();
   }
 });
+(async function initializeChat(){
+  try{
+    await loadAccount();
+    await loadMessages();
+    subscribeToMessages();
+  }catch(error){
+    console.error('Could not initialize shared chat:', error);
+    setConnectionStatus('Unavailable', true);
+    setStatus(error.message || 'Could not load shared chat.');
+    sendButton.disabled = true;
+  }
+})();
 </script>
 </body>
 </html>
