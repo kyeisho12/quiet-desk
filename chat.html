@@ -76,7 +76,7 @@
   .member-info{min-width:0;}
   .member-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .member-role{margin-top:2px;color:var(--text-dim);font-size:10px;}
-  .conference-note{margin-top:18px;padding:10px;border-left:2px solid var(--accent);background:rgba(232,163,61,.08);color:var(--text-dim);font-size:11.5px;line-height:1.45;}
+  .unread-dot{width:7px;height:7px;flex:0 0 7px;margin-left:auto;border-radius:50%;background:var(--danger);box-shadow:0 0 7px rgba(226,98,107,.75);}
   @media(max-width:900px){
     .topbar{min-height:40px;height:auto;padding:4px 6px;}
     .top-nav{gap:2px;}
@@ -103,10 +103,6 @@
   </nav>
 </header>
 <main>
-  <div class="page-heading">
-    <h1>Team Conference</h1>
-    <p class="subtext">A shared space for the group to exchange updates, questions, and ideas.</p>
-  </div>
   <div class="chat-layout">
     <section class="chat-panel" aria-label="Team conference chat">
       <div class="chat-header">
@@ -121,9 +117,7 @@
     </section>
     <aside class="members-panel" aria-label="Conference members">
       <h2>Members</h2>
-      <p class="members-note">People currently in this conference.</p>
       <div class="member-list" id="member-list"><p class="members-note">Loading accounts...</p></div>
-      <div class="conference-note" id="conference-note">Messages are shared with everyone in this room. You can edit or delete your own messages.</div>
     </aside>
   </div>
 </main>
@@ -138,7 +132,6 @@ const sendButton = document.getElementById('send-button');
 const connectionStatus = document.getElementById('connection-status');
 const chatTitle = document.getElementById('chat-title');
 const memberList = document.getElementById('member-list');
-const conferenceNote = document.getElementById('conference-note');
 const username = (localStorage.getItem('qd-username') || '').trim();
 const ROOM_KEY = 'general';
 const HISTORY_LIMIT = 100;
@@ -147,6 +140,7 @@ let accounts = [];
 let chatMode = 'room';
 let selectedRecipient = null;
 let chatMessages = [];
+let unreadByAccount = new Map();
 let realtimeChannel = null;
 
 function setConnectionStatus(text, offline = false){
@@ -227,6 +221,21 @@ function removeMessage(id){
   chatMessages = chatMessages.filter(message => message.id !== id);
   renderMessages();
 }
+function renderUnreadDot(button, unread){
+  const existing = button.querySelector('.unread-dot');
+  if(existing) existing.remove();
+  if(unread){
+    const dot = document.createElement('span');
+    dot.className = 'unread-dot';
+    dot.title = 'Unread message';
+    button.appendChild(dot);
+  }
+}
+function refreshUnreadDots(){
+  memberList.querySelectorAll('.conversation-item[data-account-id]').forEach(button => {
+    renderUnreadDot(button, unreadByAccount.has(button.dataset.accountId));
+  });
+}
 function beginEdit(message, item){
   const content = item.querySelector('.message-content');
   content.replaceChildren();
@@ -293,10 +302,7 @@ async function loadAccounts(){
     const name = document.createElement('span');
     name.className = 'member-name';
     name.textContent = item.username;
-    const role = document.createElement('span');
-    role.className = 'member-role';
-    role.textContent = 'Available for private messages';
-    info.append(name, role);
+    info.append(name);
     member.append(avatar, info);
     memberList.appendChild(member);
     member.addEventListener('click', () => selectRecipient(item));
@@ -324,13 +330,36 @@ async function loadAccounts(){
   roomButton.addEventListener('click', selectRoom);
   memberList.appendChild(roomButton);
   roomButton.classList.add('active');
+  refreshUnreadDots();
 }
 function updateModeUi(){
   const privateMode = chatMode === 'private';
   chatTitle.textContent = privateMode && selectedRecipient ? `Private chat with ${selectedRecipient.username}` : 'General discussion';
-  conferenceNote.textContent = privateMode
-    ? 'Only you and the selected person can see this conversation.'
-    : 'Messages are shared with everyone in this room. You can edit or delete your own messages.';
+}
+async function loadUnreadMessages(){
+  const [messagesResult, readsResult] = await Promise.all([
+    sb.from('chat_messages').select('account_id, created_at').eq('recipient_account_id', account.id).order('created_at', { ascending:true }),
+    sb.from('chat_reads').select('peer_account_id, last_read_at').eq('account_id', account.id)
+  ]);
+  if(messagesResult.error) throw messagesResult.error;
+  if(readsResult.error) throw readsResult.error;
+  const lastRead = new Map((readsResult.data || []).map(item => [item.peer_account_id, new Date(item.last_read_at).getTime()]));
+  unreadByAccount = new Map();
+  (messagesResult.data || []).forEach(message => {
+    const readAt = lastRead.get(message.account_id) || 0;
+    if(new Date(message.created_at).getTime() > readAt) unreadByAccount.set(message.account_id, true);
+  });
+  refreshUnreadDots();
+}
+async function markConversationRead(recipient){
+  const result = await sb.from('chat_reads').upsert({
+    account_id:account.id,
+    peer_account_id:recipient.id,
+    last_read_at:new Date().toISOString()
+  }, { onConflict:'account_id,peer_account_id' });
+  if(result.error) throw result.error;
+  unreadByAccount.delete(recipient.id);
+  refreshUnreadDots();
 }
 async function loadConversation(){
   if(chatMode === 'private' && !selectedRecipient){
@@ -356,7 +385,7 @@ async function selectRecipient(recipient){
   chatMode = 'private';
   memberList.querySelectorAll('.conversation-item').forEach(button => button.classList.toggle('active', button.dataset.accountId === recipient.id));
   updateModeUi();
-  try{ await loadConversation(); }
+  try{ await loadConversation(); await markConversationRead(recipient); }
   catch(error){ console.error('Could not load private conversation:', error); setStatus('Could not load this private conversation.'); }
 }
 async function selectRoom(){
@@ -372,7 +401,13 @@ async function loadMessages(){
 }
 function subscribeToMessages(){
   realtimeChannel = sb.channel('quiet-desk-general-chat')
-    .on('postgres_changes', { event:'INSERT', schema:'public', table:'chat_messages', filter:`room_key=eq.${ROOM_KEY}` }, payload => { if(isCurrentConversation(payload.new)) upsertMessage(payload.new); })
+    .on('postgres_changes', { event:'INSERT', schema:'public', table:'chat_messages', filter:`room_key=eq.${ROOM_KEY}` }, payload => {
+      if(isCurrentConversation(payload.new)) upsertMessage(payload.new);
+      if(payload.new.recipient_account_id === account.id && !(chatMode === 'private' && selectedRecipient && selectedRecipient.id === payload.new.account_id)){
+        unreadByAccount.set(payload.new.account_id, true);
+        refreshUnreadDots();
+      }
+    })
     .on('postgres_changes', { event:'UPDATE', schema:'public', table:'chat_messages', filter:`room_key=eq.${ROOM_KEY}` }, payload => { if(isCurrentConversation(payload.new)) upsertMessage(payload.new); })
     .on('postgres_changes', { event:'DELETE', schema:'public', table:'chat_messages', filter:`room_key=eq.${ROOM_KEY}` }, payload => removeMessage(payload.old.id))
     .subscribe(status => {
@@ -409,6 +444,7 @@ input.addEventListener('keydown', event => {
     await loadAccount();
     await loadAccounts();
     await loadMessages();
+    await loadUnreadMessages();
     subscribeToMessages();
   }catch(error){
     console.error('Could not initialize shared chat:', error);

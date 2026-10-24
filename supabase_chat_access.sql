@@ -6,6 +6,7 @@ begin;
 
 grant select, insert, update, delete on public.chat_messages to anon;
 grant usage, select on sequence public.chat_messages_id_seq to anon;
+grant select, insert, update, delete on public.chat_reads to anon;
 
 drop policy if exists "username prototype can read chat messages" on public.chat_messages;
 create policy "username prototype can read chat messages"
@@ -37,6 +38,31 @@ create policy "username prototype can update chat messages"
 drop policy if exists "username prototype can delete chat messages" on public.chat_messages;
 create policy "username prototype can delete chat messages"
   on public.chat_messages for delete
+  to anon
+  using (true);
+
+drop policy if exists "username prototype can read chat reads" on public.chat_reads;
+create policy "username prototype can read chat reads"
+  on public.chat_reads for select
+  to anon
+  using (true);
+
+drop policy if exists "username prototype can create chat reads" on public.chat_reads;
+create policy "username prototype can create chat reads"
+  on public.chat_reads for insert
+  to anon
+  with check (account_id is not null and peer_account_id is not null and account_id <> peer_account_id);
+
+drop policy if exists "username prototype can update chat reads" on public.chat_reads;
+create policy "username prototype can update chat reads"
+  on public.chat_reads for update
+  to anon
+  using (true)
+  with check (account_id is not null and peer_account_id is not null and account_id <> peer_account_id);
+
+drop policy if exists "username prototype can delete chat reads" on public.chat_reads;
+create policy "username prototype can delete chat reads"
+  on public.chat_reads for delete
   to anon
   using (true);
 

@@ -23,6 +23,14 @@ create index if not exists chat_messages_room_created_idx
 create index if not exists chat_messages_private_pair_idx
   on public.chat_messages (account_id, recipient_account_id, created_at desc);
 
+create table if not exists public.chat_reads (
+  account_id uuid not null references public.accounts(id) on delete cascade,
+  peer_account_id uuid not null references public.accounts(id) on delete cascade,
+  last_read_at timestamptz not null default now(),
+  primary key (account_id, peer_account_id),
+  check (account_id <> peer_account_id)
+);
+
 alter table public.chat_messages enable row level security;
 
 do $$
