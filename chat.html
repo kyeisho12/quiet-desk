@@ -32,9 +32,6 @@
   .chat-panel{min-height:520px;display:flex;flex-direction:column;overflow:hidden;}
   .chat-header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border-bottom:1px solid var(--border);}
   .chat-header h2{font-size:14px;margin:0;}
-  .chat-mode{display:flex;gap:5px;margin-top:4px;}
-  .mode-btn{border:0;padding:3px 7px;border-radius:5px;background:transparent;color:var(--text-dim);font:10px 'Inter',sans-serif;cursor:pointer;}
-  .mode-btn.active{background:var(--surface-3);color:var(--text);}
   .chat-meta{display:flex;align-items:center;gap:9px;color:var(--text-dim);font-size:11px;}
   .connection{display:flex;align-items:center;gap:6px;}
   .connection::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--accent-2);}
@@ -68,11 +65,11 @@
   .members-panel{padding:14px;}
   .members-panel h2{font-size:14px;margin:0 0 5px;}
   .members-note{color:var(--text-dim);font-size:11.5px;line-height:1.45;margin:0 0 15px;}
-  .member-list{display:flex;flex-direction:column;gap:10px;}
-  .member-picker{display:flex;flex-direction:column;gap:6px;margin-top:12px;}
-  .member-picker button{display:flex;align-items:center;gap:8px;width:100%;border:1px solid transparent;border-radius:7px;padding:6px;background:transparent;color:var(--text);text-align:left;font:12px 'Inter',sans-serif;cursor:pointer;}
-  .member-picker button:hover,.member-picker button.active{border-color:var(--accent);background:var(--surface-2);}
-  .member-picker .member-avatar{flex:0 0 28px;}
+  .member-list{display:flex;flex-direction:column;gap:6px;}
+  .conversation-item{display:flex;align-items:center;gap:8px;width:100%;border:1px solid transparent;border-radius:7px;padding:7px;background:transparent;color:var(--text);text-align:left;font:12px 'Inter',sans-serif;cursor:pointer;}
+  .conversation-item:hover,.conversation-item.active{border-color:var(--accent);background:var(--surface-2);}
+  .conversation-item .member-avatar{flex:0 0 28px;}
+  .conversation-divider{height:1px;margin:6px 0 2px;background:var(--border);}
   .member{display:flex;align-items:center;gap:8px;font-size:12px;}
   .member-avatar{position:relative;display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--surface-3);color:var(--text);font:600 10px 'Space Grotesk',sans-serif;}
   .member-avatar::after{content:"";position:absolute;right:-1px;bottom:-1px;width:7px;height:7px;border:2px solid var(--surface);border-radius:50%;background:var(--accent-2);}
@@ -113,7 +110,7 @@
   <div class="chat-layout">
     <section class="chat-panel" aria-label="Team conference chat">
       <div class="chat-header">
-        <div><h2 id="chat-title">General discussion</h2><div class="chat-mode"><button class="mode-btn active" id="room-mode" type="button">Shared room</button><button class="mode-btn" id="private-mode" type="button">Private</button></div></div>
+        <div><h2 id="chat-title">General discussion</h2></div>
         <div class="chat-meta"><span>Shared room</span><span class="connection" id="connection-status">Connecting</span></div>
       </div>
       <div class="messages" id="messages" aria-live="polite"><p class="chat-status">Loading recent messages...</p></div>
@@ -126,7 +123,6 @@
       <h2>Members</h2>
       <p class="members-note">People currently in this conference.</p>
       <div class="member-list" id="member-list"><p class="members-note">Loading accounts...</p></div>
-      <div class="member-picker" id="member-picker" hidden></div>
       <div class="conference-note" id="conference-note">Messages are shared with everyone in this room. You can edit or delete your own messages.</div>
     </aside>
   </div>
@@ -141,10 +137,7 @@ const messages = document.getElementById('messages');
 const sendButton = document.getElementById('send-button');
 const connectionStatus = document.getElementById('connection-status');
 const chatTitle = document.getElementById('chat-title');
-const roomModeButton = document.getElementById('room-mode');
-const privateModeButton = document.getElementById('private-mode');
 const memberList = document.getElementById('member-list');
-const memberPicker = document.getElementById('member-picker');
 const conferenceNote = document.getElementById('conference-note');
 const username = (localStorage.getItem('qd-username') || '').trim();
 const ROOM_KEY = 'general';
@@ -281,17 +274,17 @@ async function loadAccounts(){
   if(result.error) throw result.error;
   accounts = (result.data || []).filter(item => item.id !== account.id);
   memberList.replaceChildren();
-  memberPicker.replaceChildren();
   if(!accounts.length){
     const empty = document.createElement('p');
     empty.className = 'members-note';
     empty.textContent = 'No other accounts are available yet.';
     memberList.appendChild(empty);
-    return;
   }
   accounts.forEach(item => {
-    const member = document.createElement('div');
-    member.className = 'member';
+    const member = document.createElement('button');
+    member.className = 'conversation-item';
+    member.type = 'button';
+    member.dataset.accountId = item.id;
     const avatar = document.createElement('span');
     avatar.className = 'member-avatar';
     avatar.textContent = initialsFor(item.username);
@@ -306,19 +299,34 @@ async function loadAccounts(){
     info.append(name, role);
     member.append(avatar, info);
     memberList.appendChild(member);
-    const pickerButton = document.createElement('button');
-    pickerButton.type = 'button';
-    pickerButton.dataset.accountId = item.id;
-    pickerButton.append(avatar.cloneNode(true), info.cloneNode(true));
-    pickerButton.addEventListener('click', () => selectRecipient(item));
-    memberPicker.appendChild(pickerButton);
+    member.addEventListener('click', () => selectRecipient(item));
   });
+  const divider = document.createElement('div');
+  divider.className = 'conversation-divider';
+  memberList.appendChild(divider);
+  const roomButton = document.createElement('button');
+  roomButton.className = 'conversation-item';
+  roomButton.type = 'button';
+  roomButton.dataset.conversation = 'room';
+  const roomAvatar = document.createElement('span');
+  roomAvatar.className = 'member-avatar';
+  roomAvatar.textContent = 'CR';
+  const roomInfo = document.createElement('span');
+  roomInfo.className = 'member-info';
+  const roomName = document.createElement('span');
+  roomName.className = 'member-name';
+  roomName.textContent = 'Conference room';
+  const roomRole = document.createElement('span');
+  roomRole.className = 'member-role';
+  roomRole.textContent = 'Everyone';
+  roomInfo.append(roomName, roomRole);
+  roomButton.append(roomAvatar, roomInfo);
+  roomButton.addEventListener('click', selectRoom);
+  memberList.appendChild(roomButton);
+  roomButton.classList.add('active');
 }
 function updateModeUi(){
   const privateMode = chatMode === 'private';
-  roomModeButton.classList.toggle('active', !privateMode);
-  privateModeButton.classList.toggle('active', privateMode);
-  memberPicker.hidden = !privateMode;
   chatTitle.textContent = privateMode && selectedRecipient ? `Private chat with ${selectedRecipient.username}` : 'General discussion';
   conferenceNote.textContent = privateMode
     ? 'Only you and the selected person can see this conversation.'
@@ -345,10 +353,19 @@ async function loadConversation(){
 }
 async function selectRecipient(recipient){
   selectedRecipient = recipient;
-  memberPicker.querySelectorAll('button').forEach(button => button.classList.toggle('active', button.dataset.accountId === recipient.id));
+  chatMode = 'private';
+  memberList.querySelectorAll('.conversation-item').forEach(button => button.classList.toggle('active', button.dataset.accountId === recipient.id));
   updateModeUi();
   try{ await loadConversation(); }
   catch(error){ console.error('Could not load private conversation:', error); setStatus('Could not load this private conversation.'); }
+}
+async function selectRoom(){
+  chatMode = 'room';
+  selectedRecipient = null;
+  memberList.querySelectorAll('.conversation-item').forEach(button => button.classList.toggle('active', button.dataset.conversation === 'room'));
+  updateModeUi();
+  try{ await loadConversation(); }
+  catch(error){ console.error('Could not load shared room:', error); setStatus('Could not load the shared room.'); }
 }
 async function loadMessages(){
   return loadConversation();
@@ -400,17 +417,6 @@ input.addEventListener('keydown', event => {
     sendButton.disabled = true;
   }
 })();
-roomModeButton.addEventListener('click', async () => {
-  chatMode = 'room';
-  updateModeUi();
-  try{ await loadConversation(); }catch(error){ console.error('Could not load shared room:', error); setStatus('Could not load the shared room.'); }
-});
-privateModeButton.addEventListener('click', () => {
-  chatMode = 'private';
-  updateModeUi();
-  if(selectedRecipient) selectRecipient(selectedRecipient);
-  else setStatus('Choose a member to start a private conversation.');
-});
 </script>
 </body>
 </html>
