@@ -31,6 +31,23 @@ create table if not exists public.chat_reads (
   check (account_id <> peer_account_id)
 );
 
+create or replace function public.delete_expired_chat_messages()
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  deleted_count integer;
+begin
+  delete from public.chat_messages
+  where created_at < now() - interval '30 days';
+
+  get diagnostics deleted_count = row_count;
+  return deleted_count;
+end;
+$$;
+
 alter table public.chat_messages enable row level security;
 
 do $$
@@ -49,3 +66,13 @@ end;
 $$;
 
 commit;
+
+-- Optional Supabase project scheduler setup:
+-- 1. Enable the pg_cron extension in Database > Extensions.
+-- 2. Run this once to clean messages older than 30 days every night:
+--
+-- select cron.schedule(
+--   'delete-expired-quiet-desk-chat-messages',
+--   '15 2 * * *',
+--   $$select public.delete_expired_chat_messages();$$
+-- );
