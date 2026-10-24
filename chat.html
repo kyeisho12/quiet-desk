@@ -32,6 +32,9 @@
   .chat-panel{min-height:520px;display:flex;flex-direction:column;overflow:hidden;}
   .chat-header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border-bottom:1px solid var(--border);}
   .chat-header h2{font-size:14px;margin:0;}
+  .chat-mode{display:flex;gap:5px;margin-top:4px;}
+  .mode-btn{border:0;padding:3px 7px;border-radius:5px;background:transparent;color:var(--text-dim);font:10px 'Inter',sans-serif;cursor:pointer;}
+  .mode-btn.active{background:var(--surface-3);color:var(--text);}
   .chat-meta{display:flex;align-items:center;gap:9px;color:var(--text-dim);font-size:11px;}
   .connection{display:flex;align-items:center;gap:6px;}
   .connection::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--accent-2);}
@@ -66,6 +69,10 @@
   .members-panel h2{font-size:14px;margin:0 0 5px;}
   .members-note{color:var(--text-dim);font-size:11.5px;line-height:1.45;margin:0 0 15px;}
   .member-list{display:flex;flex-direction:column;gap:10px;}
+  .member-picker{display:flex;flex-direction:column;gap:6px;margin-top:12px;}
+  .member-picker button{display:flex;align-items:center;gap:8px;width:100%;border:1px solid transparent;border-radius:7px;padding:6px;background:transparent;color:var(--text);text-align:left;font:12px 'Inter',sans-serif;cursor:pointer;}
+  .member-picker button:hover,.member-picker button.active{border-color:var(--accent);background:var(--surface-2);}
+  .member-picker .member-avatar{flex:0 0 28px;}
   .member{display:flex;align-items:center;gap:8px;font-size:12px;}
   .member-avatar{position:relative;display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--surface-3);color:var(--text);font:600 10px 'Space Grotesk',sans-serif;}
   .member-avatar::after{content:"";position:absolute;right:-1px;bottom:-1px;width:7px;height:7px;border:2px solid var(--surface);border-radius:50%;background:var(--accent-2);}
@@ -106,7 +113,7 @@
   <div class="chat-layout">
     <section class="chat-panel" aria-label="Team conference chat">
       <div class="chat-header">
-        <h2>General discussion</h2>
+        <div><h2 id="chat-title">General discussion</h2><div class="chat-mode"><button class="mode-btn active" id="room-mode" type="button">Shared room</button><button class="mode-btn" id="private-mode" type="button">Private</button></div></div>
         <div class="chat-meta"><span>Shared room</span><span class="connection" id="connection-status">Connecting</span></div>
       </div>
       <div class="messages" id="messages" aria-live="polite"><p class="chat-status">Loading recent messages...</p></div>
@@ -118,29 +125,34 @@
     <aside class="members-panel" aria-label="Conference members">
       <h2>Members</h2>
       <p class="members-note">People currently in this conference.</p>
-      <div class="member-list">
-        <div class="member"><span class="member-avatar">GM</span><span class="member-info"><span class="member-name">Guian M.</span><span class="member-role">You</span></span></div>
-        <div class="member"><span class="member-avatar">AS</span><span class="member-info"><span class="member-name">Alyssa S.</span><span class="member-role">Member</span></span></div>
-        <div class="member"><span class="member-avatar">JR</span><span class="member-info"><span class="member-name">Jordan R.</span><span class="member-role">Member</span></span></div>
-        <div class="member"><span class="member-avatar">TK</span><span class="member-info"><span class="member-name">Taylor K.</span><span class="member-role">Member</span></span></div>
-      </div>
-      <div class="conference-note">Messages are shared with everyone in this room. You can edit or delete your own messages.</div>
+      <div class="member-list" id="member-list"><p class="members-note">Loading accounts...</p></div>
+      <div class="member-picker" id="member-picker" hidden></div>
+      <div class="conference-note" id="conference-note">Messages are shared with everyone in this room. You can edit or delete your own messages.</div>
     </aside>
   </div>
 </main>
 <script>
 const SUPABASE_URL = 'https://owbxunszjwsaozchjmei.supabase.co';
-const SUPABASE_ANON_KEY = '******';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im93Ynh1bnN6andzYW96Y2hqbWVpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkyMTI2MDYsImV4cCI6MjEwNDc4ODYwNn0.AOn_3Ifth5awi_nxTEqO2Ng3ODuq_rWFHCi0AO7e3Hg';
 const sb = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 const form = document.getElementById('chat-form');
 const input = document.getElementById('chat-input');
 const messages = document.getElementById('messages');
 const sendButton = document.getElementById('send-button');
 const connectionStatus = document.getElementById('connection-status');
+const chatTitle = document.getElementById('chat-title');
+const roomModeButton = document.getElementById('room-mode');
+const privateModeButton = document.getElementById('private-mode');
+const memberList = document.getElementById('member-list');
+const memberPicker = document.getElementById('member-picker');
+const conferenceNote = document.getElementById('conference-note');
 const username = (localStorage.getItem('qd-username') || '').trim();
 const ROOM_KEY = 'general';
 const HISTORY_LIMIT = 100;
 let account = null;
+let accounts = [];
+let chatMode = 'room';
+let selectedRecipient = null;
 let chatMessages = [];
 let realtimeChannel = null;
 
@@ -150,6 +162,13 @@ function setConnectionStatus(text, offline = false){
 }
 function initialsFor(name){ return name.slice(0, 2).toUpperCase(); }
 function formatMessageTime(value){ return new Date(value).toLocaleTimeString([], { hour:'numeric', minute:'2-digit' }); }
+function isCurrentConversation(message){
+  if(message.room_key !== ROOM_KEY) return false;
+  if(chatMode === 'room') return !message.recipient_account_id;
+  return Boolean(selectedRecipient && message.recipient_account_id
+    && ((message.account_id === account.id && message.recipient_account_id === selectedRecipient.id)
+      || (message.account_id === selectedRecipient.id && message.recipient_account_id === account.id)));
+}
 function setStatus(text){
   messages.replaceChildren();
   const status = document.createElement('p');
@@ -183,7 +202,10 @@ function renderMessage(message){
   if(mine){
     const actions = document.createElement('div');
     actions.className = 'message-actions';
-    [['Edit', () => beginEdit(message, item)], ['Delete', () => deleteMessage(message)]].forEach(([label, handler]) => {
+    const actionsForMessage = chatMode === 'private'
+      ? [['Edit', () => beginEdit(message, item)]]
+      : [['Edit', () => beginEdit(message, item)], ['Delete', () => deleteMessage(message)]];
+    actionsForMessage.forEach(([label, handler]) => {
       const button = document.createElement('button');
       button.className = 'message-action';
       button.type = 'button';
@@ -254,16 +276,87 @@ async function loadAccount(){
   if(!result.data) throw new Error('Your account could not be found. Log in again on the Call page.');
   account = result.data;
 }
-async function loadMessages(){
-  const result = await sb.from('chat_messages').select('*').eq('room_key', ROOM_KEY).order('created_at', { ascending:false }).limit(HISTORY_LIMIT);
+async function loadAccounts(){
+  const result = await sb.from('accounts').select('id, username').order('username', { ascending:true });
+  if(result.error) throw result.error;
+  accounts = (result.data || []).filter(item => item.id !== account.id);
+  memberList.replaceChildren();
+  memberPicker.replaceChildren();
+  if(!accounts.length){
+    const empty = document.createElement('p');
+    empty.className = 'members-note';
+    empty.textContent = 'No other accounts are available yet.';
+    memberList.appendChild(empty);
+    return;
+  }
+  accounts.forEach(item => {
+    const member = document.createElement('div');
+    member.className = 'member';
+    const avatar = document.createElement('span');
+    avatar.className = 'member-avatar';
+    avatar.textContent = initialsFor(item.username);
+    const info = document.createElement('span');
+    info.className = 'member-info';
+    const name = document.createElement('span');
+    name.className = 'member-name';
+    name.textContent = item.username;
+    const role = document.createElement('span');
+    role.className = 'member-role';
+    role.textContent = 'Available for private messages';
+    info.append(name, role);
+    member.append(avatar, info);
+    memberList.appendChild(member);
+    const pickerButton = document.createElement('button');
+    pickerButton.type = 'button';
+    pickerButton.dataset.accountId = item.id;
+    pickerButton.append(avatar.cloneNode(true), info.cloneNode(true));
+    pickerButton.addEventListener('click', () => selectRecipient(item));
+    memberPicker.appendChild(pickerButton);
+  });
+}
+function updateModeUi(){
+  const privateMode = chatMode === 'private';
+  roomModeButton.classList.toggle('active', !privateMode);
+  privateModeButton.classList.toggle('active', privateMode);
+  memberPicker.hidden = !privateMode;
+  chatTitle.textContent = privateMode && selectedRecipient ? `Private chat with ${selectedRecipient.username}` : 'General discussion';
+  conferenceNote.textContent = privateMode
+    ? 'Only you and the selected person can see this conversation.'
+    : 'Messages are shared with everyone in this room. You can edit or delete your own messages.';
+}
+async function loadConversation(){
+  if(chatMode === 'private' && !selectedRecipient){
+    chatMessages = [];
+    renderMessages();
+    setStatus('Choose a member to start a private conversation.');
+    return;
+  }
+  let query = sb.from('chat_messages').select('*').eq('room_key', ROOM_KEY);
+  if(chatMode === 'room'){
+    query = query.is('recipient_account_id', null);
+  }else{
+    const pair = `and(account_id.eq.${account.id},recipient_account_id.eq.${selectedRecipient.id}),and(account_id.eq.${selectedRecipient.id},recipient_account_id.eq.${account.id})`;
+    query = query.or(pair);
+  }
+  const result = await query.order('created_at', { ascending:false }).limit(HISTORY_LIMIT);
   if(result.error) throw result.error;
   chatMessages = (result.data || []).reverse();
   renderMessages(true);
 }
+async function selectRecipient(recipient){
+  selectedRecipient = recipient;
+  memberPicker.querySelectorAll('button').forEach(button => button.classList.toggle('active', button.dataset.accountId === recipient.id));
+  updateModeUi();
+  try{ await loadConversation(); }
+  catch(error){ console.error('Could not load private conversation:', error); setStatus('Could not load this private conversation.'); }
+}
+async function loadMessages(){
+  return loadConversation();
+}
 function subscribeToMessages(){
   realtimeChannel = sb.channel('quiet-desk-general-chat')
-    .on('postgres_changes', { event:'INSERT', schema:'public', table:'chat_messages', filter:`room_key=eq.${ROOM_KEY}` }, payload => upsertMessage(payload.new))
-    .on('postgres_changes', { event:'UPDATE', schema:'public', table:'chat_messages', filter:`room_key=eq.${ROOM_KEY}` }, payload => upsertMessage(payload.new))
+    .on('postgres_changes', { event:'INSERT', schema:'public', table:'chat_messages', filter:`room_key=eq.${ROOM_KEY}` }, payload => { if(isCurrentConversation(payload.new)) upsertMessage(payload.new); })
+    .on('postgres_changes', { event:'UPDATE', schema:'public', table:'chat_messages', filter:`room_key=eq.${ROOM_KEY}` }, payload => { if(isCurrentConversation(payload.new)) upsertMessage(payload.new); })
     .on('postgres_changes', { event:'DELETE', schema:'public', table:'chat_messages', filter:`room_key=eq.${ROOM_KEY}` }, payload => removeMessage(payload.old.id))
     .subscribe(status => {
       if(status === 'SUBSCRIBED') setConnectionStatus('Live');
@@ -275,7 +368,13 @@ form.addEventListener('submit', async event => {
   const body = input.value.trim();
   if(!body || !account || !sb) return;
   sendButton.disabled = true;
-  const result = await sb.from('chat_messages').insert({ room_key:ROOM_KEY, account_id:account.id, author_username:account.username, body }).select('*').single();
+  const result = await sb.from('chat_messages').insert({
+    room_key:ROOM_KEY,
+    account_id:account.id,
+    recipient_account_id:chatMode === 'private' && selectedRecipient ? selectedRecipient.id : null,
+    author_username:account.username,
+    body
+  }).select('*').single();
   sendButton.disabled = false;
   if(result.error){ console.error('Could not send chat message:', result.error); return; }
   input.value = '';
@@ -291,6 +390,7 @@ input.addEventListener('keydown', event => {
 (async function initializeChat(){
   try{
     await loadAccount();
+    await loadAccounts();
     await loadMessages();
     subscribeToMessages();
   }catch(error){
@@ -300,6 +400,17 @@ input.addEventListener('keydown', event => {
     sendButton.disabled = true;
   }
 })();
+roomModeButton.addEventListener('click', async () => {
+  chatMode = 'room';
+  updateModeUi();
+  try{ await loadConversation(); }catch(error){ console.error('Could not load shared room:', error); setStatus('Could not load the shared room.'); }
+});
+privateModeButton.addEventListener('click', () => {
+  chatMode = 'private';
+  updateModeUi();
+  if(selectedRecipient) selectRecipient(selectedRecipient);
+  else setStatus('Choose a member to start a private conversation.');
+});
 </script>
 </body>
 </html>
