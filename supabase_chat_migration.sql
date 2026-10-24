@@ -9,13 +9,30 @@ create table if not exists public.chat_messages (
   account_id uuid not null references public.accounts(id) on delete cascade,
   recipient_account_id uuid references public.accounts(id) on delete cascade,
   author_username text not null,
-  body text not null check (length(trim(body)) > 0),
+  body text not null default '',
+  image_url text,
+  image_path text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
 
 alter table public.chat_messages
   add column if not exists recipient_account_id uuid references public.accounts(id) on delete cascade;
+alter table public.chat_messages
+  add column if not exists image_url text;
+alter table public.chat_messages
+  add column if not exists image_path text;
+alter table public.chat_messages
+  alter column body set default '';
+alter table public.chat_messages
+  drop constraint if exists chat_messages_body_check;
+alter table public.chat_messages
+  add constraint chat_messages_body_or_image_check
+  check (length(trim(body)) > 0 or image_url is not null);
+
+insert into storage.buckets (id, name, public)
+values ('chat-images', 'chat-images', true)
+on conflict (id) do update set public = true;
 
 create index if not exists chat_messages_room_created_idx
   on public.chat_messages (room_key, created_at desc);
