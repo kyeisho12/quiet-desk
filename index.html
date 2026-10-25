@@ -149,6 +149,9 @@
   .call-sheet::-webkit-scrollbar{ display:none; }
   .call-sheet-heading{ justify-content:space-between; margin-bottom:6px; }
   .call-section-title{ font-size:13px; color:var(--text); }
+  .call-section-flow .call-section-title{ color:#4FA9A2; }
+  .call-section-wrapup .call-section-title{ color:#E8A33D; }
+  .call-section-special .call-section-title{ color:#E2626B; }
   .call-flow-step{ display:grid; grid-template-columns:25px 1fr 28px; gap:7px; align-items:start; margin-bottom:10px; }
   .call-step-number{ width:23px; height:23px; display:grid; place-items:center; border-radius:50%; background:var(--surface-3); color:var(--accent); font-size:12px; }
   .call-step-title{ color:var(--accent); font-size:12px; margin-bottom:3px; }
@@ -165,8 +168,15 @@
   .call-form.open{ display:flex; }
   .call-form::before{ content:attr(data-mode); display:block; color:var(--text); font:600 18px 'Space Grotesk','Segoe UI',sans-serif; padding-bottom:8px; border-bottom:1px solid var(--border); text-transform:capitalize; }
   .call-form select{ appearance:auto; }
+  .call-form-help{ margin:-2px 0 0; padding:8px 10px; border-left:3px solid var(--accent); background:rgba(232,163,61,.09); color:var(--text-dim); font-size:11.5px; line-height:1.45; }
+  .call-form-help.flow strong{ color:#4FA9A2; }
+  .call-form-help.wrapup strong{ color:#E8A33D; }
+  .call-form-help.special strong{ color:#E2626B; }
   .call-form-actions{ justify-content:flex-start; }
   .call-sheet-section{ margin-bottom:12px; }
+  .call-sheet-section + .call-sheet-section{ padding-top:14px; border-top:2px solid var(--accent); }
+  .call-section-wrapup{ border-top-color:#E8A33D !important; }
+  .call-section-special{ border-top-color:#E2626B !important; }
   .call-sheet-section:last-child{ margin-bottom:0; }
   .call-empty{ color:var(--text-dim); font-size:13px; }
   .call-link{ all:unset; cursor:pointer; color:var(--text-dim); font-size:11px; }
@@ -783,11 +793,11 @@
       <form class="call-form" id="call-form">
         <input id="call-form-title" required placeholder="Title">
         <select id="call-form-section" required>
-          <option value="flow">Call flow step</option>
-          <option value="announcement">Announcement</option>
-          <option value="wrapup">Wrap-up</option>
-          <option value="special">Special case</option>
+          <option value="flow">IMPORTANT SCRIPT</option>
+          <option value="wrapup">WRAP UPS SCRIPT</option>
+          <option value="special">SPECIAL CASE</option>
         </select>
+        <div class="call-form-help" id="call-form-help" role="status" aria-live="polite"></div>
         <textarea id="call-form-text" required placeholder="Script text..."></textarea>
         <div class="call-form-actions"><button class="btn primary" id="call-form-save" type="submit">Save</button><button class="btn ghost" id="call-form-cancel" type="button">Cancel</button></div>
       </form>
@@ -2252,6 +2262,7 @@ const callFormEl = document.getElementById('call-form');
 const callFormTitleEl = document.getElementById('call-form-title');
 const callFormSectionEl = document.getElementById('call-form-section');
 const callFormTextEl = document.getElementById('call-form-text');
+const callFormHelpEl = document.getElementById('call-form-help');
 const callEditToggleEl = document.getElementById('call-edit-toggle');
 let scripts = BUILTIN.map(script => ({ ...script }));
 let callOpenKey = null;
@@ -2270,12 +2281,22 @@ function copyScriptText(text){
 }
 function openCallForm(script){
   callEditingId = script && !script.key ? script.id : (script ? script.key : null);
-  callFormEl.dataset.mode = script ? 'edit call flow' : 'add call flow';
+  callFormEl.dataset.mode = script ? 'edit script' : 'add script';
   callFormEl.classList.add('open');
   callFormTitleEl.value = script ? script.title : '';
   callFormSectionEl.value = script ? script.section : 'special';
+  updateCallFormHelp();
   callFormTextEl.value = script ? script.text : '';
   callFormTitleEl.focus();
+}
+function updateCallFormHelp(){
+  const help = {
+    flow: '<strong>IMPORTANT SCRIPT:</strong> Use for opening spiel, survey spiel, and other key call scripts.',
+    wrapup: '<strong>WRAP UPS SCRIPT:</strong> Use for talking points to cover before ending the call.',
+    special: '<strong>SPECIAL CASE:</strong> Use for personal notes, such as how to do something or what the premium is.'
+  };
+  callFormHelpEl.className = `call-form-help ${callFormSectionEl.value}`;
+  callFormHelpEl.innerHTML = help[callFormSectionEl.value] || '';
 }
 function closeCallForm(){ callFormEl.classList.remove('open'); callFormEl.dataset.mode = ''; callEditingId = null; callFormEl.reset(); }
 async function saveCallScript(event){
@@ -2359,10 +2380,17 @@ function renderFlow(scriptsIn, target){
 }
 function renderCollapsible(scriptsIn, target){
   scriptsIn.forEach(script => {
+    const scriptId = script.key || (script.id != null ? String(script.id) : null);
+    if(scriptId == null) return;
     const row = document.createElement('div'); row.className = 'call-collapsed-row';
-    const title = document.createElement('span'); title.textContent = script.title; const chevron = document.createElement('span'); chevron.className = 'call-chevron'; chevron.textContent = callOpenKey === script.key || callOpenKey === script.id ? '⌃' : '⌄'; row.append(title, chevron);
-    row.addEventListener('click', () => { callOpenKey = (callOpenKey === script.key || callOpenKey === script.id) ? null : (script.key || script.id); renderCallSheet(); }); target.appendChild(row);
-    if(callOpenKey === script.key || callOpenKey === script.id){ const expanded = document.createElement('div'); expanded.className = 'call-expanded'; const text = document.createElement('div'); text.className = 'call-script-text'; text.textContent = script.text; expanded.append(text, makeCopyButton(script.text)); const links = makeEditLinks(script); if(links) expanded.appendChild(links); target.appendChild(expanded); }
+    const isOpen = callOpenKey === scriptId;
+    const title = document.createElement('span'); title.textContent = script.title; const chevron = document.createElement('span'); chevron.className = 'call-chevron'; chevron.textContent = isOpen ? '⌃' : '⌄'; row.append(title, chevron);
+    row.setAttribute('role', 'button'); row.tabIndex = 0; row.setAttribute('aria-expanded', String(isOpen));
+    const toggle = () => { callOpenKey = isOpen ? null : scriptId; renderCallSheet(); };
+    row.addEventListener('click', toggle);
+    row.addEventListener('keydown', event => { if(event.key === 'Enter' || event.key === ' '){ event.preventDefault(); toggle(); } });
+    target.appendChild(row);
+    if(isOpen){ const expanded = document.createElement('div'); expanded.className = 'call-expanded'; const text = document.createElement('div'); text.className = 'call-script-text'; text.textContent = script.text; expanded.append(text, makeCopyButton(script.text)); const links = makeEditLinks(script); if(links) expanded.appendChild(links); target.appendChild(expanded); }
   });
 }
 const callReminderSlotEl = document.getElementById('call-reminder-slot');
@@ -2384,17 +2412,15 @@ function renderCallSheet(){
   if(!scripts.length){
     const empty = document.createElement('div');
     empty.className = 'call-empty';
-    empty.textContent = 'Your call workspace is ready. Add your first flow step above.';
+    empty.textContent = 'Your call workspace is ready. Add your first important script above.';
     callSheetEl.appendChild(empty);
     callSheetEl.appendChild(callStatusEl);
     return;
   }
   const reminder = scripts.find(script => script.key === 'reminders' || script.section === 'reminder');
   if(reminder) renderReminderBanner(reminder);
-  const flow = document.createElement('section'); flow.className = 'call-sheet-section'; const flowHead = document.createElement('div'); flowHead.className = 'call-sheet-heading'; const flowTitle = document.createElement('div'); flowTitle.className = 'call-section-title'; flowTitle.textContent = 'Call flow'; flowHead.appendChild(flowTitle); flow.appendChild(flowHead); renderFlow(scripts.filter(script => script.section === 'flow').sort((a,b) => a.sort - b.sort), flow); callSheetEl.appendChild(flow);
-  [['wrapup','Wrap-ups'], ['special','Special cases']].forEach(([section, label]) => { const block = document.createElement('section'); block.className = 'call-sheet-section'; const head = document.createElement('div'); head.className = 'call-sheet-heading'; const title = document.createElement('div'); title.className = 'call-section-title'; title.textContent = label; head.appendChild(title); block.appendChild(head); renderCollapsible(scripts.filter(script => script.section === section && script.key !== 'reminders').sort((a,b) => a.sort - b.sort), block); callSheetEl.appendChild(block); });
-  const announcements = scripts.filter(script => script.section === 'announcement').sort((a,b) => a.sort - b.sort);
-  if(announcements.length){ const block = document.createElement('section'); block.className = 'call-sheet-section'; const head = document.createElement('div'); head.className = 'call-sheet-heading'; const title = document.createElement('div'); title.className = 'call-section-title'; title.textContent = 'Announcements'; head.appendChild(title); block.appendChild(head); renderFlow(announcements, block); callSheetEl.appendChild(block); }
+  const flow = document.createElement('section'); flow.className = 'call-sheet-section call-section-flow'; const flowHead = document.createElement('div'); flowHead.className = 'call-sheet-heading'; const flowTitle = document.createElement('div'); flowTitle.className = 'call-section-title'; flowTitle.textContent = 'IMPORTANT SCRIPT'; flowHead.appendChild(flowTitle); flow.appendChild(flowHead); renderFlow(scripts.filter(script => script.section === 'flow').sort((a,b) => a.sort - b.sort), flow); callSheetEl.appendChild(flow);
+  [['wrapup','WRAP UPS SCRIPT'], ['special','SPECIAL CASES']].forEach(([section, label]) => { const block = document.createElement('section'); block.className = `call-sheet-section call-section-${section}`; const head = document.createElement('div'); head.className = 'call-sheet-heading'; const title = document.createElement('div'); title.className = 'call-section-title'; title.textContent = label; head.appendChild(title); block.appendChild(head); renderCollapsible(scripts.filter(script => script.section === section && script.key !== 'reminders').sort((a,b) => a.sort - b.sort), block); callSheetEl.appendChild(block); });
   callSheetEl.appendChild(callStatusEl);
 }
 async function resetCallScript(script){
@@ -2407,7 +2433,7 @@ async function loadCallScripts(){
     callEditMode = true;
     callEditToggleEl.textContent = 'Done';
     renderCallSheet();
-    setCallStatus('Add your first call flow to activate this account.', true);
+    setCallStatus('Add your first script to activate this account.', true);
     openCallForm(null);
     return;
   }
@@ -2420,10 +2446,11 @@ async function loadCallScripts(){
   try{ const result = await sb.from('call_scripts').select('*').eq('account_id', backendAccount.id).order('sort', { ascending:true }).order('id', { ascending:true }); if(result.error) throw result.error; scripts = mergeCallRows(result.data || [], accountHasSeedScripts(account)); callOnline = true; setCallStatus('Synced', false); renderCallSheet(); }
   catch(error){ console.error('Could not load Call scripts:', error); callOnline = false; if(cached) try{ scripts = mergeCallRows(JSON.parse(cached), accountHasSeedScripts(account)); }catch(parseError){} setCallStatus('Offline - edits only stay on this PC', true); renderCallSheet(); }
 }
-function mergeCallRows(rows, includeBuiltins = true){ const merged = includeBuiltins ? BUILTIN.map(script => ({ ...script })) : []; rows.forEach(row => { const index = row.key ? merged.findIndex(script => script.key === row.key) : -1; if(index >= 0) merged[index] = { ...merged[index], ...row }; else merged.push({ ...row, key: row.key && index >= 0 ? row.key : null }); }); return merged; }
+function mergeCallRows(rows, includeBuiltins = true){ const merged = includeBuiltins ? BUILTIN.map(script => ({ ...script })) : []; rows.forEach(row => { const normalized = row.section === 'announcement' ? { ...row, section:'flow' } : row; const index = normalized.key ? merged.findIndex(script => script.key === normalized.key) : -1; if(index >= 0) merged[index] = { ...merged[index], ...normalized }; else merged.push({ ...normalized, key: normalized.key && index >= 0 ? normalized.key : null }); }); return merged; }
 document.getElementById('new-call').addEventListener('click', () => { callConcernEl.value = ''; callConcernEl.focus(); });
 document.getElementById('call-form-cancel').addEventListener('click', closeCallForm);
 callFormEl.addEventListener('submit', saveCallScript);
+callFormSectionEl.addEventListener('change', updateCallFormHelp);
 document.addEventListener('keydown', event => {
   if(event.key === 'Escape' && callFormEl.classList.contains('open')) closeCallForm();
 });
