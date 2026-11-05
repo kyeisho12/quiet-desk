@@ -492,24 +492,26 @@
   .blast-wrap{ display:flex; gap:32px; align-items:flex-start; flex-wrap:wrap; user-select:none; -webkit-user-select:none; -ms-user-select:none; }
   .blast-board{
     display:grid;
-    grid-template-columns:repeat(8, 36px);
-    grid-template-rows:repeat(8, 36px);
-    gap:3px;
+    grid-template-columns:repeat(8, minmax(0, 1fr));
+    grid-template-rows:repeat(8, minmax(0, 1fr));
+    gap:clamp(2px, .7vw, 3px);
     background:var(--surface);
     border:1px solid var(--border);
     border-radius:10px;
-    padding:8px;
+    padding:clamp(6px, 1.5vw, 8px);
+    width:min(100%, 360px);
+    aspect-ratio:1;
     touch-action:none;
     user-select:none;
   }
   .blast-cell{
-    width:36px; height:36px; border-radius:5px;
+    min-width:0; min-height:0; border-radius:5px;
     background:var(--surface-3);
   }
   .blast-cell.filled{ background:var(--accent); }
   .blast-cell.preview-ok{ background:var(--accent-2); opacity:.55; }
   .blast-cell.preview-bad{ background:var(--danger); opacity:.4; }
-  .blast-side{ min-width:170px; }
+  .blast-side{ min-width:170px; flex:1 1 190px; }
   .blast-tray{ display:flex; gap:14px; margin-top:18px; }
   .tray-slot{
     width:96px; height:96px;
@@ -525,9 +527,15 @@
     position:fixed; top:0; left:0; pointer-events:none;
     display:grid; gap:3px; z-index:50; opacity:.85;
   }
-  .blast-ghost-cell{ width:36px; height:36px; border-radius:5px; background:var(--accent); }
+  .blast-ghost-cell{ width:100%; height:100%; border-radius:5px; background:var(--accent); }
   .blast-status{ font-size:13px; color:var(--text-dim); margin-top:14px; line-height:1.7; }
   .blast-over{ color:var(--danger); font-weight:600; }
+  #panel-blast.active{ max-width:760px; }
+  .blast-wrap > div:first-child{ flex:0 1 360px; min-width:0; }
+  .blast-heading{ display:flex; align-items:baseline; justify-content:space-between; gap:16px; flex-wrap:wrap; }
+  .blast-score{ display:flex; gap:18px; }
+  .blast-stat{ min-width:58px; }
+  .blast-stat .stat-value{ font-size:22px; }
 
   /* Response bank */
   .bank-top{ display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap; }
@@ -719,6 +727,9 @@
     .alarm-list{ grid-template-columns:1fr; }
     .alarm-card{ padding:10px; }
     .account-box{ margin-left:auto; width:auto; padding:0; }
+    .blast-wrap{ gap:18px; }
+    .blast-wrap > div:first-child{ flex-basis:100%; }
+    .blast-side{ min-width:0; flex-basis:100%; }
   }
 </style>
 </head>
@@ -730,6 +741,7 @@
       <button class="nav-btn active" data-tab="call">Call</button>
       <button class="nav-btn" data-tab="notepad">Notepad</button>
       <button class="nav-btn" data-tab="click">Click</button>
+      <button class="nav-btn" data-tab="blast">Block Blast</button>
       <button class="nav-btn" data-tab="clock">Clock</button>
       <a class="nav-btn" href="resources.html">Resources</a>
       <a class="nav-btn" href="chat.html">Chat</a>
@@ -775,6 +787,31 @@
     <div class="click-wrap">
       <button id="click-btn">Click</button>
       <img class="click-image" id="click-image" alt="Random surprise">
+    </div>
+  </section>
+
+  <!-- Block Blast -->
+  <section class="panel" id="panel-blast">
+    <div class="blast-heading">
+      <div>
+        <h2>Block Blast</h2>
+        <p class="subtext">Place pieces to clear complete rows and columns.</p>
+      </div>
+      <div class="blast-score" aria-label="Game score">
+        <div class="blast-stat"><div class="stat-label">Score</div><div class="stat-value" id="blast-score">0</div></div>
+        <div class="blast-stat"><div class="stat-label">Best</div><div class="stat-value" id="blast-best">0</div></div>
+      </div>
+    </div>
+    <div class="blast-wrap">
+      <div>
+        <div class="blast-board" id="blast-board" aria-label="Block Blast board"></div>
+        <div class="blast-status" id="blast-status" role="status" aria-live="polite"></div>
+      </div>
+      <div class="blast-side">
+        <div class="stat-label">Pieces</div>
+        <div class="blast-tray" id="blast-tray"></div>
+        <button class="btn primary" id="blast-restart" type="button">New game</button>
+      </div>
     </div>
   </section>
 
@@ -1882,9 +1919,7 @@ clickBtn.addEventListener('click', () => {
   clickImageEl.classList.add('pop');
 });
 
-/* ---------- Call screen ---------- */
-/* Removed Block Blast implementation. */
-/*
+/* ---------- Block Blast ---------- */
 const BLAST_SIZE = 8;
 const blastBoardEl = document.getElementById('blast-board');
 const blastTrayEl = document.getElementById('blast-tray');
@@ -2087,12 +2122,15 @@ function startBlastDrag(e, trayIdx){
   e.preventDefault();
   const shape = blastTray[trayIdx];
   const { h, w } = blastBounds(shape);
-  const cellPx = 39;
-
   const ghost = document.createElement('div');
   ghost.className = 'blast-ghost';
-  ghost.style.gridTemplateColumns = `repeat(${w}, 36px)`;
-  ghost.style.gridTemplateRows = `repeat(${h}, 36px)`;
+  const cellSize = blastCells[0][0].getBoundingClientRect().width;
+  const boardGap = parseFloat(getComputedStyle(blastBoardEl).gap);
+  const boardPadding = parseFloat(getComputedStyle(blastBoardEl).paddingLeft);
+  const cellPx = cellSize + boardGap;
+  ghost.style.gridTemplateColumns = `repeat(${w}, ${cellSize}px)`;
+  ghost.style.gridTemplateRows = `repeat(${h}, ${cellSize}px)`;
+  ghost.style.gap = `${boardGap}px`;
   for(let r=0;r<h;r++){
     for(let c=0;c<w;c++){
       const on = shape.some(s => s[0]===r && s[1]===c);
@@ -2104,7 +2142,7 @@ function startBlastDrag(e, trayIdx){
   }
   document.body.appendChild(ghost);
 
-  blastDrag = { shape, trayIdx, ghost, w, h };
+  blastDrag = { shape, trayIdx, ghost, w, h, cellPx, boardPadding };
   moveBlastGhost(e.clientX, e.clientY);
 
   window.addEventListener('pointermove', onBlastPointerMove);
@@ -2113,8 +2151,7 @@ function startBlastDrag(e, trayIdx){
 
 function moveBlastGhost(x, y){
   if(!blastDrag) return;
-  const { ghost, w, h } = blastDrag;
-  const cellPx = 39;
+  const { ghost, w, h, cellPx } = blastDrag;
   ghost.style.left = (x - (w*cellPx)/2) + 'px';
   ghost.style.top = (y - (h*cellPx) - 30) + 'px';
 }
@@ -2122,9 +2159,9 @@ function moveBlastGhost(x, y){
 function blastOriginFromPointer(){
   const rect = blastBoardEl.getBoundingClientRect();
   const ghostRect = blastDrag.ghost.getBoundingClientRect();
-  const cellPx = 39;
-  const localX = ghostRect.left - rect.left - 8;
-  const localY = ghostRect.top - rect.top - 8;
+  const cellPx = blastDrag.cellPx;
+  const localX = ghostRect.left - rect.left - blastDrag.boardPadding;
+  const localY = ghostRect.top - rect.top - blastDrag.boardPadding;
   const c = Math.round(localX / cellPx);
   const r = Math.round(localY / cellPx);
   return { r, c };
@@ -2164,7 +2201,6 @@ function startBlastGame(){
 
 blastRestartBtn.addEventListener('click', startBlastGame);
 startBlastGame();
-*/
 
 /* ---------- Clock ---------- */
 const clockTimeEl = document.getElementById('clock-time');
@@ -3269,7 +3305,7 @@ function initDrawpad(){
 
 /* ---------- Restore requested tab ---------- */
 const requestedTab = location.hash.slice(1);
-activateTab(['call','notepad','click','clock'].includes(requestedTab) ? requestedTab : 'call');
+activateTab(['call','notepad','click','blast','clock'].includes(requestedTab) ? requestedTab : 'call');
 </script>
 
 </body>
