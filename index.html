@@ -138,7 +138,7 @@
   #panel-notepad.active{ max-width:none; background:radial-gradient(circle at top, rgba(232,163,61,.06), transparent 60%); }
   .panel h2{ font-size:22px; margin:0 0 4px 0; font-weight:600; }
   .subtext{ color:var(--text-dim); font-size:13.5px; margin:0 0 26px 0; }
-  #panel-click.active{
+  #panel-space.active{
     max-width:none;
     min-height:calc(100vh - 80px);
     display:flex;
@@ -147,6 +147,11 @@
     justify-content:center;
     text-align:center;
   }
+  .space-switcher{ display:flex; gap:6px; margin-bottom:24px; }
+  .space-switcher button{ min-width:110px; }
+  .space-view{ display:none; width:100%; }
+  .space-view.active{ display:block; }
+  .space-click-view.active{ min-height:calc(100vh - 170px); display:flex; flex-direction:column; align-items:center; justify-content:center; }
   /* Call screen */
   .call-section{ min-height:0; display:flex; flex-direction:column; }
   .call-concern{ flex:0 0 auto; display:flex; flex-direction:column; }
@@ -229,10 +234,7 @@
   .alarm-list{ display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:8px; }
   .alarm-row{ display:flex; align-items:center; gap:8px; padding:9px 10px; border:1px solid rgba(232,163,61,.18); border-left:2px solid var(--accent); background:rgba(232,163,61,.08); border-radius:0 8px 8px 0; cursor:pointer; }
   .alarm-row:hover{ background:rgba(232,163,61,.14); }
-  .alarm-row.suggested{ border-left-color:var(--accent-2); background:rgba(79,169,162,.08); }
-  .alarm-row.suggested:hover{ background:rgba(79,169,162,.14); }
   .alarm-row-time{ color:var(--accent); font-size:13px; font-weight:600; white-space:nowrap; }
-  .alarm-row.suggested .alarm-row-time{ color:var(--accent-2); }
   .alarm-row-name{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--text); font-size:12px; }
   .alarm-row-zone{ margin-left:auto; color:var(--text-dim); font-size:10px; white-space:nowrap; }
   .alarm-row-badge{ margin-left:auto; color:var(--text-dim); font-size:9px; letter-spacing:.3px; text-transform:uppercase; }
@@ -530,7 +532,7 @@
   .blast-ghost-cell{ width:100%; height:100%; border-radius:5px; background:var(--accent); }
   .blast-status{ font-size:13px; color:var(--text-dim); margin-top:14px; line-height:1.7; }
   .blast-over{ color:var(--danger); font-weight:600; }
-  #panel-blast.active{ max-width:760px; }
+  .space-blast-view.active{ max-width:760px; margin:0 auto; text-align:left; }
   .blast-wrap > div:first-child{ flex:0 1 360px; min-width:0; }
   .blast-heading{ display:flex; align-items:baseline; justify-content:space-between; gap:16px; flex-wrap:wrap; }
   .blast-score{ display:flex; gap:18px; }
@@ -715,7 +717,7 @@
     .call-script-text{ font-size:12px; line-height:1.35; }
     .call-icon-btn{ width:23px; height:23px; }
     .call-collapsed-row{ padding:6px 0; }
-    #panel-clock.active{ max-width:none; }
+    #panel-clock.active, #panel-space.active{ max-width:none; }
     .clock-layout{ grid-template-columns:1fr; gap:10px; }
     .clock-display{ padding:8px 0 4px; }
     .clock-time{ gap:4px; font-size:48px; }
@@ -740,8 +742,7 @@
     <nav class="top-nav">
       <button class="nav-btn active" data-tab="call">Call</button>
       <button class="nav-btn" data-tab="notepad">Notepad</button>
-      <button class="nav-btn" data-tab="click">Click</button>
-      <button class="nav-btn" data-tab="blast">Block Blast</button>
+      <button class="nav-btn" data-tab="space">Space</button>
       <button class="nav-btn" data-tab="clock">Clock</button>
       <a class="nav-btn" href="resources.html">Resources</a>
       <a class="nav-btn" href="chat.html">Chat</a>
@@ -780,37 +781,41 @@
     </div>
   </section>
 
-  <!-- Click Break -->
-  <section class="panel" id="panel-click">
-    <h2>Click break</h2>
-    <p class="subtext">Click the button to reveal a random surprise.</p>
-    <div class="click-wrap">
-      <button id="click-btn">Click</button>
-      <img class="click-image" id="click-image" alt="Random surprise">
+  <!-- Space -->
+  <section class="panel" id="panel-space">
+    <div class="space-switcher" role="tablist" aria-label="Choose an activity">
+      <button class="btn primary space-tab active" type="button" data-space-view="click">Click break</button>
+      <button class="btn ghost space-tab" type="button" data-space-view="blast">Block Blast</button>
     </div>
-  </section>
-
-  <!-- Block Blast -->
-  <section class="panel" id="panel-blast">
-    <div class="blast-heading">
-      <div>
-        <h2>Block Blast</h2>
-        <p class="subtext">Place pieces to clear complete rows and columns.</p>
-      </div>
-      <div class="blast-score" aria-label="Game score">
-        <div class="blast-stat"><div class="stat-label">Score</div><div class="stat-value" id="blast-score">0</div></div>
-        <div class="blast-stat"><div class="stat-label">Best</div><div class="stat-value" id="blast-best">0</div></div>
+    <div class="space-view space-click-view active" data-space-panel="click">
+      <h2>Click break</h2>
+      <p class="subtext">Click the button to reveal a random surprise.</p>
+      <div class="click-wrap">
+        <button id="click-btn">Click</button>
+        <img class="click-image" id="click-image" alt="Random surprise">
       </div>
     </div>
-    <div class="blast-wrap">
-      <div>
-        <div class="blast-board" id="blast-board" aria-label="Block Blast board"></div>
-        <div class="blast-status" id="blast-status" role="status" aria-live="polite"></div>
+    <div class="space-view space-blast-view" data-space-panel="blast">
+      <div class="blast-heading">
+        <div>
+          <h2>Block Blast</h2>
+          <p class="subtext">Place pieces to clear complete rows and columns.</p>
+        </div>
+        <div class="blast-score" aria-label="Game score">
+          <div class="blast-stat"><div class="stat-label">Score</div><div class="stat-value" id="blast-score">0</div></div>
+          <div class="blast-stat"><div class="stat-label">Best</div><div class="stat-value" id="blast-best">0</div></div>
+        </div>
       </div>
-      <div class="blast-side">
-        <div class="stat-label">Pieces</div>
-        <div class="blast-tray" id="blast-tray"></div>
-        <button class="btn primary" id="blast-restart" type="button">New game</button>
+      <div class="blast-wrap">
+        <div>
+          <div class="blast-board" id="blast-board" aria-label="Block Blast board"></div>
+          <div class="blast-status" id="blast-status" role="status" aria-live="polite"></div>
+        </div>
+        <div class="blast-side">
+          <div class="stat-label">Pieces</div>
+          <div class="blast-tray" id="blast-tray"></div>
+          <button class="btn primary" id="blast-restart" type="button">New game</button>
+        </div>
       </div>
     </div>
   </section>
@@ -840,7 +845,7 @@
         <h3>Alarm</h3>
         <p class="alarm-help">Set a daily reminder using the selected time zone.</p>
         <div class="alarm-form">
-          <div class="alarm-time-wrap"><label class="alarm-label" for="alarm-time">Time</label><input id="alarm-time" type="time" autocomplete="off">
+          <div class="alarm-time-wrap"><label class="alarm-label" for="alarm-time">Time</label><input id="alarm-time" type="text" inputmode="none" readonly autocomplete="off" placeholder="--:-- --" aria-haspopup="listbox">
             <div class="alarm-time-picker" id="alarm-time-picker" hidden>
               <div><span class="alarm-time-column-label">Hour</span><div class="alarm-time-column" id="alarm-hour-options"></div></div>
               <div><span class="alarm-time-column-label">Minute</span><div class="alarm-time-column" id="alarm-minute-options"></div></div>
@@ -855,7 +860,7 @@
       </div>
     </div>
     <div class="alarm-library">
-      <div class="alarm-library-head"><h3 class="alarm-library-title">Alarm library</h3><span class="alarm-library-hint">Click any alarm to load it into the form</span></div>
+      <div class="alarm-library-head"><h3 class="alarm-library-title">Your alarm history</h3><span class="alarm-library-hint">Your saved alarms for this account</span></div>
       <div class="alarm-list" id="alarm-list"></div>
     </div>
     <div class="clock-alert" id="clock-alert" hidden><button id="clock-alert-dismiss" type="button" aria-label="Dismiss reminder">x</button><strong>Reminder</strong><div id="clock-alert-text"></div></div>
@@ -1018,6 +1023,7 @@ async function restoreSession(){
     backendAccount = localAccount;
     accountNameEl.textContent = localAccount.username;
     await loadCallScripts();
+    await loadAccountAlarms();
     revealWorkspace();
     return;
   }
@@ -1049,6 +1055,7 @@ async function restoreSession(){
       .eq('id', backendAccount.id);
     if(updated.error) console.warn('Could not update account activity:', updated.error);
     await loadCallScripts();
+    await loadAccountAlarms();
     revealWorkspace();
   }catch(error){
     console.error('Could not restore account session:', error);
@@ -1101,6 +1108,7 @@ async function setUsername(value){
       accountDialogEl.hidden = true;
       scripts = accountIsComplete(account) && accountHasSeedScripts(account) ? BUILTIN.map(script => ({ ...script })) : [];
       await loadCallScripts();
+      await loadAccountAlarms();
       revealWorkspace();
       return true;
     }
@@ -1117,6 +1125,7 @@ async function setUsername(value){
     accountDialogEl.hidden = true;
     scripts = accountIsComplete(account) && accountHasSeedScripts(account) ? BUILTIN.map(script => ({ ...script })) : [];
     await loadCallScripts();
+    await loadAccountAlarms();
     revealWorkspace();
     return true;
   }catch(error){
@@ -1160,6 +1169,22 @@ function activateTab(name){
 }
 
 navBtns.forEach(btn => btn.addEventListener('click', () => activateTab(btn.dataset.tab)));
+
+const spaceTabs = document.querySelectorAll('.space-tab');
+const spacePanels = document.querySelectorAll('.space-view');
+function activateSpaceView(view){
+  spaceTabs.forEach(tab => {
+    const active = tab.dataset.spaceView === view;
+    tab.classList.toggle('active', active);
+    tab.classList.toggle('primary', active);
+    tab.classList.toggle('ghost', !active);
+    tab.setAttribute('aria-selected', String(active));
+  });
+  spacePanels.forEach(panel => panel.classList.toggle('active', panel.dataset.spacePanel === view));
+  localStorage.setItem('qd-last-space-view', view);
+}
+spaceTabs.forEach(tab => tab.addEventListener('click', () => activateSpaceView(tab.dataset.spaceView)));
+activateSpaceView(localStorage.getItem('qd-last-space-view') === 'blast' ? 'blast' : 'click');
 
 /* ---------- Notepad (shared Notebank) ---------- */
 const npTitle = document.getElementById('notepad-title');
@@ -2222,24 +2247,57 @@ const clockAlertTextEl = document.getElementById('clock-alert-text');
 const clockAlertDismissBtn = document.getElementById('clock-alert-dismiss');
 const CLOCK_ZONE_KEY = 'qd-clock-zone';
 const CLOCK_ALARMS_KEY = 'qd-clock-alarms';
-const CLOCK_LEGACY_ALARM_KEY = 'qd-clock-alarm';
 const CLOCK_LAST_ALARM_KEY = 'qd-clock-last-alarm';
-const SUGGESTED_ALARMS = [
-  { time:'07:00', reminder:'Start the day' },
-  { time:'08:00', reminder:'Morning focus' },
-  { time:'12:00', reminder:'Lunch break' },
-  { time:'17:00', reminder:'Wrap up the day' },
-  { time:'21:00', reminder:'Wind down' }
-];
 let clockTimer = null;
-let clockAlarms = JSON.parse(localStorage.getItem(CLOCK_ALARMS_KEY) || '[]');
-if(!Array.isArray(clockAlarms)) clockAlarms = [];
-if(!clockAlarms.length){
-  const legacyAlarm = JSON.parse(localStorage.getItem(CLOCK_LEGACY_ALARM_KEY) || 'null');
-  if(legacyAlarm) clockAlarms = [{ ...legacyAlarm, id:Date.now() }];
-}
+let clockAlarms = [];
+let clockAlarmsLoaded = false;
 
 function selectedClockTimeZone(){ return clockZoneEl.value === 'local' ? undefined : clockZoneEl.value; }
+function clockAlarmStorageKey(){
+  const account = currentAccount();
+  return `${CLOCK_ALARMS_KEY}:${account ? account.id : accountId(getUsername()) || 'guest'}`;
+}
+function readLocalAlarms(){
+  try{
+    let raw = localStorage.getItem(clockAlarmStorageKey());
+    const account = currentAccount();
+    if(raw === null && account && accountId(account.username) === 'guian'){
+      raw = localStorage.getItem(CLOCK_ALARMS_KEY);
+    }
+    const saved = JSON.parse(raw || '[]');
+    return Array.isArray(saved) ? saved : [];
+  }catch(error){
+    console.warn('Unable to load local alarms:', error);
+    return [];
+  }
+}
+function normalizeAlarm(alarm){
+  return {
+    ...alarm,
+    id: String(alarm.id || `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`),
+    zoneLabel: alarm.zoneLabel || alarm.zone_label || 'This computer'
+  };
+}
+async function loadAccountAlarms(){
+  clockAlarms = readLocalAlarms().map(normalizeAlarm);
+  if(sb && backendAccount){
+    const result = await sb.from('clock_alarms')
+      .select('id, time, reminder, sound, zone, zone_label')
+      .eq('account_id', backendAccount.id)
+      .order('created_at', { ascending:true });
+    if(result.error){
+      console.warn('Could not load account alarms; using offline alarms:', result.error);
+    }else{
+      const remoteAlarms = (result.data || []).map(normalizeAlarm);
+      const shouldMigrateLocal = !remoteAlarms.length && clockAlarms.length > 0;
+      clockAlarms = remoteAlarms.length ? remoteAlarms : clockAlarms;
+      localStorage.setItem(clockAlarmStorageKey(), JSON.stringify(clockAlarms));
+      if(shouldMigrateLocal) await saveAlarms();
+    }
+  }
+  clockAlarmsLoaded = true;
+  renderAlarms();
+}
 function clockParts(timeZone){
   const parts = new Intl.DateTimeFormat('en-US', { timeZone, hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:false }).formatToParts(new Date());
   return Object.fromEntries(parts.filter(part => part.type !== 'literal').map(part => [part.type, part.value]));
@@ -2259,7 +2317,38 @@ function updateClock(){
   checkClockAlarm(timeZone);
 }
 function setAlarmStatus(message){ alarmStatusEl.textContent = message; }
-function saveAlarms(){ localStorage.setItem(CLOCK_ALARMS_KEY, JSON.stringify(clockAlarms)); }
+async function saveAlarms(){
+  localStorage.setItem(clockAlarmStorageKey(), JSON.stringify(clockAlarms));
+  if(!sb || !backendAccount) return;
+  const payload = clockAlarms.map(alarm => ({
+    id:alarm.id,
+    account_id:backendAccount.id,
+    time:alarm.time,
+    reminder:alarm.reminder || '',
+    sound:alarm.sound !== false,
+    zone:alarm.zone,
+    zone_label:alarm.zoneLabel || clockZoneLabel()
+  }));
+  if(payload.length){
+    const upserted = await sb.from('clock_alarms').upsert(payload, { onConflict:'id' });
+    if(upserted.error){
+      console.warn('Could not save account alarms; local copy was saved:', upserted.error);
+      setAlarmStatus('Saved on this device. Account sync is unavailable.');
+      return;
+    }
+  }
+  const currentIds = clockAlarms.map(alarm => alarm.id);
+  const existing = await sb.from('clock_alarms').select('id').eq('account_id', backendAccount.id);
+  if(existing.error){
+    console.warn('Could not remove deleted account alarms:', existing.error);
+    return;
+  }
+  const deletedIds = (existing.data || []).map(alarm => alarm.id).filter(id => !currentIds.includes(id));
+  if(deletedIds.length){
+    const deleted = await sb.from('clock_alarms').delete().eq('account_id', backendAccount.id).in('id', deletedIds);
+    if(deleted.error) console.warn('Could not remove deleted account alarms:', deleted.error);
+  }
+}
 function displayAlarmTime(time){
   const [hour, minute] = time.split(':').map(Number);
   const date = new Date();
@@ -2268,21 +2357,14 @@ function displayAlarmTime(time){
 }
 function renderAlarms(){
   alarmListEl.innerHTML = '';
-  const savedTimes = new Set(clockAlarms.map(alarm => `${alarm.time}|${alarm.zone}`));
-  const library = [
-    ...clockAlarms.map(alarm => ({ ...alarm, suggested:false })),
-    ...SUGGESTED_ALARMS
-      .filter(alarm => !savedTimes.has(`${alarm.time}|${clockZoneEl.value}`))
-      .map(alarm => ({ ...alarm, id:`suggested-${alarm.time}`, zone:clockZoneEl.value, zoneLabel:clockZoneLabel(), suggested:true }))
-  ];
-  if(!library.length){
-    alarmListEl.innerHTML = '<div class="alarm-empty">No alarms saved yet.</div>';
-    setAlarmStatus('Choose a time to create a daily alarm.');
+  if(!clockAlarms.length){
+    alarmListEl.innerHTML = '<div class="alarm-empty">No alarms saved yet. Your saved alarms will appear here.</div>';
+    setAlarmStatus(clockAlarmsLoaded ? 'Choose a time to create your first daily alarm.' : 'Loading your alarms...');
     return;
   }
-  library.forEach(alarm => {
+  clockAlarms.forEach(alarm => {
     const row = document.createElement('div');
-    row.className = `alarm-row${alarm.suggested ? ' suggested' : ''}`;
+    row.className = 'alarm-row';
     row.title = 'Use this alarm';
     const time = document.createElement('span');
     time.className = 'alarm-row-time';
@@ -2291,37 +2373,42 @@ function renderAlarms(){
     name.className = 'alarm-row-name';
     name.textContent = alarm.reminder || 'Alarm';
     const zone = document.createElement('span');
-    zone.className = alarm.suggested ? 'alarm-row-badge' : 'alarm-row-zone';
-    zone.textContent = alarm.suggested ? 'Suggested' : (alarm.zoneLabel || 'This computer');
-    if(!alarm.suggested){
-      const remove = document.createElement('button');
-      remove.className = 'alarm-row-delete';
-      remove.type = 'button';
-      remove.textContent = 'x';
-      remove.title = 'Delete alarm';
-      remove.addEventListener('click', event => {
-        event.stopPropagation();
-        clockAlarms = clockAlarms.filter(item => item.id !== alarm.id);
-        saveAlarms();
-        renderAlarms();
-      });
-      row.append(remove);
-    }
+    zone.className = 'alarm-row-zone';
+    zone.textContent = alarm.zoneLabel || 'This computer';
+    const remove = document.createElement('button');
+    remove.className = 'alarm-row-delete';
+    remove.type = 'button';
+    remove.textContent = 'x';
+    remove.title = 'Delete alarm';
+    remove.addEventListener('click', event => {
+      event.stopPropagation();
+      clockAlarms = clockAlarms.filter(item => item.id !== alarm.id);
+      void saveAlarms();
+      renderAlarms();
+    });
+    row.append(remove);
     row.addEventListener('click', () => useAlarm(alarm));
     row.prepend(time, name, zone);
     alarmListEl.appendChild(row);
   });
-  setAlarmStatus(clockAlarms.length ? `${clockAlarms.length} saved daily alarm${clockAlarms.length === 1 ? '' : 's'}.` : 'Choose a suggested time or set your own.');
+  setAlarmStatus(`${clockAlarms.length} saved daily alarm${clockAlarms.length === 1 ? '' : 's'}.`);
 }
 function useAlarm(alarm){
-  alarmTimeEl.value = alarm.time;
+  setAlarmInputValue(alarm.time);
   alarmReminderEl.value = alarm.reminder || '';
   alarmSoundEl.checked = alarm.sound !== false;
   setAlarmStatus('Alarm loaded. Set it again to confirm.');
   alarmTimeEl.focus();
 }
+function setAlarmInputValue(time){
+  const [hour24, minute] = time.split(':').map(Number);
+  alarmTimeEl.value = `${displayAlarmTime(time)}`
+    .replace(/\s+/g, ' ')
+    .trim();
+  alarmTimeEl.dataset.time = `${String(hour24).padStart(2,'0')}:${String(minute).padStart(2,'0')}`;
+}
 function pickerTimeParts(){
-  const [hour24, minute] = (alarmTimeEl.value || '08:00').split(':').map(Number);
+  const [hour24, minute] = (alarmTimeEl.dataset.time || '08:00').split(':').map(Number);
   return { hour12:hour24 % 12 || 12, minute, period:hour24 >= 12 ? 'PM' : 'AM' };
 }
 function setPickerTime(part, value){
@@ -2330,7 +2417,7 @@ function setPickerTime(part, value){
   const minute = part === 'minute' ? Number(value) : current.minute;
   const period = part === 'period' ? value : current.period;
   const hour24 = (hour % 12) + (period === 'PM' ? 12 : 0);
-  alarmTimeEl.value = `${String(hour24).padStart(2,'0')}:${String(minute).padStart(2,'0')}`;
+  setAlarmInputValue(`${String(hour24).padStart(2,'0')}:${String(minute).padStart(2,'0')}`);
   renderTimePicker();
 }
 function renderTimePicker(){
@@ -2340,7 +2427,10 @@ function renderTimePicker(){
     option.type = 'button';
     option.className = `alarm-time-option${String(value) === String(selected) ? ' selected' : ''}`;
     option.textContent = String(value).padStart(2,'0');
-    option.addEventListener('click', () => setPickerTime(part, value));
+    option.addEventListener('click', event => {
+      event.stopPropagation();
+      setPickerTime(part, value);
+    });
     return option;
   });
   alarmHourOptionsEl.replaceChildren(...makeOptions(Array.from({length:12}, (_, index) => index + 1), current.hour12, 'hour'));
@@ -2350,7 +2440,6 @@ function renderTimePicker(){
 function showTimePicker(){ renderTimePicker(); alarmTimePickerEl.hidden = false; }
 alarmTimeEl.addEventListener('focus', showTimePicker);
 alarmTimeEl.addEventListener('click', showTimePicker);
-alarmTimeEl.addEventListener('change', renderTimePicker);
 document.addEventListener('click', event => {
   if(!event.target.closest('.alarm-time-wrap')) alarmTimePickerEl.hidden = true;
 });
@@ -2394,13 +2483,15 @@ function checkClockAlarm(timeZone){
   });
 }
 clockZoneEl.value = localStorage.getItem(CLOCK_ZONE_KEY) || 'local';
-clockZoneEl.addEventListener('change', () => { localStorage.setItem(CLOCK_ZONE_KEY, clockZoneEl.value); updateClock(); });
+clockZoneEl.addEventListener('change', () => { localStorage.setItem(CLOCK_ZONE_KEY, clockZoneEl.value); renderAlarms(); updateClock(); });
 alarmSaveBtn.addEventListener('click', () => {
-  if(!alarmTimeEl.value){ setAlarmStatus('Choose a time first.'); return; }
-  const alarm = { id:Date.now(), time:alarmTimeEl.value, reminder:alarmReminderEl.value.trim(), sound:alarmSoundEl.checked, zone:clockZoneEl.value, zoneLabel:clockZoneLabel() };
+  const time = alarmTimeEl.dataset.time;
+  if(!time){ setAlarmStatus('Choose an hour, minute, and AM/PM first.'); return; }
+  const alarm = { id:`${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, time, reminder:alarmReminderEl.value.trim(), sound:alarmSoundEl.checked, zone:clockZoneEl.value, zoneLabel:clockZoneLabel() };
   clockAlarms = [...clockAlarms.filter(item => !(item.time === alarm.time && item.zone === alarm.zone)), alarm];
-  saveAlarms();
+  void saveAlarms();
   localStorage.removeItem(CLOCK_LAST_ALARM_KEY);
+  alarmTimePickerEl.hidden = true;
   renderAlarms();
 });
 alarmNotificationBtn.addEventListener('click', async () => {
@@ -3305,7 +3396,9 @@ function initDrawpad(){
 
 /* ---------- Restore requested tab ---------- */
 const requestedTab = location.hash.slice(1);
-activateTab(['call','notepad','click','blast','clock'].includes(requestedTab) ? requestedTab : 'call');
+const legacySpaceView = requestedTab === 'blast' ? 'blast' : requestedTab === 'click' ? 'click' : null;
+if(legacySpaceView) activateSpaceView(legacySpaceView);
+activateTab(['call','notepad','space','clock'].includes(requestedTab) ? requestedTab : legacySpaceView ? 'space' : 'call');
 </script>
 
 </body>
